@@ -58,7 +58,10 @@
     "ServerStorage": {
       "$className": "ServerStorage",
       "HouseModels": {
-        "$path": "assets/houses"
+        "$path": "assets/approved-imports/houses"
+      },
+      "FurnitureModels": {
+        "$path": "assets/approved-imports/furniture"
       }
     },
     "ServerScriptService": {

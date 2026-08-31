@@ -18,3 +18,22 @@ build.rbxlx
 
 # Sourcemap (regenerated)
 sourcemap.json
+
+# ── Asset intake ────────────────────────────────────────────────────────────
+# The blanket *.rbxm / *.rbxmx rules above exist to keep Rojo build output out
+# of git. They also silently swallowed anything dropped in assets/, so approved
+# models are re-included here explicitly.
+!assets/approved-imports/**/*.rbxm
+!assets/approved-imports/**/*.rbxmx
+
+# Raw intake is local-only: original packs, reference houses and source textures
+# are large, license-encumbered, and never shipped. Only the curated, converted
+# result in approved-imports/ belongs in the repo. Folder scaffolding is kept so
+# a fresh clone still has somewhere to drop files.
+assets/furniture-source/*
+assets/reference-houses/*
+assets/texture-materials/*
+!assets/furniture-source/.gitkeep
+!assets/reference-houses/.gitkeep
+!assets/texture-materials/.gitkeep
+!assets/**/README.md

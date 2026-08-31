@@ -1,5 +1,9 @@
 # House models
 
+This folder is the **approved** houses only. Raw downloads and layout references live in
+[`../../reference-houses/`](../../reference-houses/) and never sync. Every house here needs a row in
+[`../../ASSET_MANIFEST.md`](../../ASSET_MANIFEST.md).
+
 There are two places a house can live. Which you use depends on how you got it.
 
 ## Inserting from the Toolbox (Studio)
@@ -23,7 +27,7 @@ Drop it here as **`YourHouse.rbxmx`** (or `.rbxm`). Rojo syncs this folder to
 `ServerStorage/HouseModels`, so the file name becomes the model name.
 
 ```
-assets/houses/CozyCottage.rbxmx   ->   ServerStorage.HouseModels.CozyCottage
+assets/approved-imports/houses/CozyCottage.rbxmx  ->  ServerStorage.HouseModels.CozyCottage
 ```
 
 To move a Toolbox house into version control: right-click it in Studio → *Save to File*, drop the
@@ -32,7 +36,7 @@ file here, delete it from `ToolboxHouses`. No config change needed — the loade
 
 ## Either way
 
-Add an entry to [`src/shared/config/MapConfig.luau`](../../src/shared/config/MapConfig.luau) and
+Add an entry to [`src/shared/config/MapConfig.luau`](../../../src/shared/config/MapConfig.luau) and
 point `MapConfig.default` at its `id`. There's a commented template in that file to copy.
 
 ## The only thing a house has to do
