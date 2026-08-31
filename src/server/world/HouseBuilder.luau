@@ -35,12 +35,12 @@ local Props = require(script.Parent.Props)
 
 local HouseBuilder = {}
 
-local WALL_COLOR = Color3.fromRGB(226, 218, 206)
+local WALL_COLOR = Color3.fromRGB(243, 231, 206) -- warm cream, not clinical white
 -- Warm, slightly off-white. Neon is fully emissive, so this is deliberately not pure white --
 -- and it has to stay Neon so Power Outage's swap to SmoothPlastic still reads as "lights off".
-local CEILING_LIGHT_COLOR = Color3.fromRGB(255, 212, 150)
-local TRIM_COLOR = Color3.fromRGB(158, 130, 104)
-local STAIR_COLOR = Color3.fromRGB(168, 132, 96)
+local CEILING_LIGHT_COLOR = Color3.fromRGB(206, 158, 104)
+local TRIM_COLOR = Color3.fromRGB(172, 132, 92)
+local STAIR_COLOR = Color3.fromRGB(190, 148, 100)
 
 -- There is exactly one house, so the attic hatch state lives here rather than being re-derived.
 -- Rebuilding the house replaces it.
@@ -369,10 +369,12 @@ local function buildRoom(room: any, roomsFolder: Instance)
 	local width = room.rect[3] - room.rect[1]
 	local depth = room.rect[4] - room.rect[2]
 	local light = Instance.new("PointLight")
-	light.Brightness = 1.9
+	-- Deliberately weak: this is the "lights off" wash that keeps corners from going pitch
+	-- black. The lamps are what actually light the house.
+	light.Brightness = 0.25
 	light.Range = math.clamp(math.max(width, depth) * 0.85, 20, 34)
 	light.Shadows = true
-	light.Color = Color3.fromRGB(255, 196, 128) -- warm bulb, not daylight
+	light.Color = Color3.fromRGB(255, 186, 120)
 	light.Parent = lightHost
 end
 
@@ -427,9 +429,11 @@ local function buildFurniture(house: Instance)
 			CollectionService:AddTag(primary, Tags.HouseLight)
 			primary.CastShadow = false -- same self-shadowing problem as the ceiling fixtures
 			local light = Instance.new("PointLight")
-			light.Brightness = 1.3
-			light.Range = 17
-			light.Color = Color3.fromRGB(255, 178, 105)
+			-- The primary source. Warm close-range pools rather than a flat ceiling wash is
+			-- what makes a room read as lit from within.
+			light.Brightness = 1.6
+			light.Range = 18
+			light.Color = Color3.fromRGB(255, 168, 92)
 			light.Parent = primary
 		end
 	end

@@ -14,10 +14,10 @@
 
 local Props = {}
 
-local WOOD = Color3.fromRGB(150, 111, 76)
-local DARK_WOOD = Color3.fromRGB(102, 76, 54)
-local FABRIC = Color3.fromRGB(196, 164, 200)
-local WHITE = Color3.fromRGB(238, 238, 240)
+local WOOD = Color3.fromRGB(196, 152, 104)
+local DARK_WOOD = Color3.fromRGB(146, 106, 70)
+local FABRIC = Color3.fromRGB(226, 178, 172)
+local WHITE = Color3.fromRGB(246, 238, 226)
 local METAL = Color3.fromRGB(178, 182, 188)
 local SCREEN = Color3.fromRGB(28, 30, 38)
 local CARDBOARD = Color3.fromRGB(178, 145, 101)
@@ -124,7 +124,7 @@ local BUILDERS: { [string]: (add: Adder) -> BasePart } = {
 			Vector3.new(2.2, 1.8, 2.2),
 			CFrame.new(0, 7.2, 0),
 			-- Warm rather than pure white: Neon is fully emissive.
-			Color3.fromRGB(255, 205, 145),
+			Color3.fromRGB(255, 198, 132),
 			Enum.Material.Neon
 		)
 	end,

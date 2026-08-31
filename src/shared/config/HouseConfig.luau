@@ -109,42 +109,42 @@ local HouseConfig = {
 			displayName = "Living Room",
 			level = "Ground",
 			rect = { -30, -24, -6, 6 },
-			color = { 0.76, 0.68, 0.58 },
+			color = { 0.59, 0.47, 0.35 },
 		},
 		{
 			id = "Den",
 			displayName = "Den",
 			level = "Ground",
 			rect = { -30, 6, -6, 24 },
-			color = { 0.72, 0.65, 0.62 },
+			color = { 0.74, 0.57, 0.38 },
 		},
 		{
 			id = "Hallway",
 			displayName = "Hallway",
 			level = "Ground",
 			rect = { -6, -24, 6, 24 },
-			color = { 0.66, 0.64, 0.64 },
+			color = { 0.71, 0.55, 0.37 },
 		},
 		{
 			id = "Kitchen",
 			displayName = "Kitchen",
 			level = "Ground",
 			rect = { 6, -24, 30, 2 },
-			color = { 0.72, 0.75, 0.72 },
+			color = { 0.78, 0.63, 0.44 },
 		},
 		{
 			id = "Stairwell",
 			displayName = "Stairwell",
 			level = "Ground",
 			rect = { 6, 2, 30, 24 },
-			color = { 0.68, 0.66, 0.7 },
+			color = { 0.74, 0.57, 0.38 },
 		},
 		{
 			id = "Porch",
 			displayName = "Front Porch",
 			level = "Ground",
 			rect = { -10, -34, 10, -24 },
-			color = { 0.6, 0.56, 0.52 },
+			color = { 0.67, 0.55, 0.43 },
 			outdoor = true,
 		},
 		{
@@ -152,7 +152,7 @@ local HouseConfig = {
 			displayName = "Backyard",
 			level = "Ground",
 			rect = { -28, 24, 28, 50 },
-			color = { 0.55, 0.7, 0.47 },
+			color = { 0.47, 0.59, 0.35 },
 			outdoor = true,
 		},
 
@@ -162,28 +162,28 @@ local HouseConfig = {
 			displayName = "Bedroom",
 			level = "Upper",
 			rect = { -30, -24, -6, 6 },
-			color = { 0.73, 0.66, 0.79 },
+			color = { 0.8, 0.64, 0.44 },
 		},
 		{
 			id = "Bathroom",
 			displayName = "Bathroom",
 			level = "Upper",
 			rect = { -30, 6, -6, 24 },
-			color = { 0.7, 0.79, 0.83 },
+			color = { 0.81, 0.78, 0.75 },
 		},
 		{
 			id = "Landing",
 			displayName = "Landing",
 			level = "Upper",
 			rect = { -6, -24, 6, 24 },
-			color = { 0.66, 0.64, 0.64 },
+			color = { 0.71, 0.55, 0.37 },
 		},
 		{
 			id = "GuestRoom",
 			displayName = "Guest Room",
 			level = "Upper",
 			rect = { 6, -24, 30, 2 },
-			color = { 0.74, 0.7, 0.64 },
+			color = { 0.77, 0.6, 0.4 },
 		},
 		{
 			-- The stairwell void. Its slab is holed so the staircase below is open to the sky
@@ -192,7 +192,7 @@ local HouseConfig = {
 			displayName = "Stair Landing",
 			level = "Upper",
 			rect = { 6, 2, 30, 24 },
-			color = { 0.68, 0.66, 0.7 },
+			color = { 0.74, 0.57, 0.38 },
 			floorHole = { 17, 2, 30, 20.5 },
 		},
 
@@ -370,6 +370,8 @@ local HouseConfig = {
 			hides = "In the closet",
 		},
 
+		{ kind = "Lamp", room = "Hallway", at = { -4, 0, 8 } },
+
 		-- Kitchen -----------------------------------------------------------------------
 		{ kind = "Counter", room = "Kitchen", at = { 28, 0, -14 }, yaw = 90 },
 		{ kind = "Fridge", room = "Kitchen", at = { 28, 0, -22 }, yaw = 90 },
@@ -389,6 +391,11 @@ local HouseConfig = {
 		{ kind = "SnackBowl", room = "Kitchen", at = { 28, 3.7, -17 }, snack = "Cookies" },
 		{ kind = "SnackBowl", room = "Kitchen", at = { 15, 3.2, -6 }, snack = "Soda" },
 		{ kind = "SnackBowl", room = "Kitchen", at = { 18, 3.4, -22.5 }, snack = "Popcorn" },
+		{ kind = "Lamp", room = "Kitchen", at = { 26, 0, -3 } },
+
+		-- Stairwell / landing ------------------------------------------------------------
+		{ kind = "Lamp", room = "Stairwell", at = { 9, 0, 21 } },
+		{ kind = "Lamp", room = "Landing", at = { -4, 0, -16 } },
 
 		-- Bedroom -----------------------------------------------------------------------
 		{ kind = "Bed", room = "Bedroom", at = { -26, 0, -19 }, yaw = 90, bedZone = true },
