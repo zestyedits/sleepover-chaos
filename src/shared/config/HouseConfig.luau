@@ -81,9 +81,10 @@ local HouseConfig = {
 
 	-- A ground plane under everything, so stepping off the porch is a small drop rather than a
 	-- fall into the void. Sits just below the house slabs to avoid z-fighting with them.
+	-- y must stay clear of the room slabs, which span -1..0. Overlapping them z-fights.
 	ground = {
 		rect = { -90, -90, 90, 90 },
-		y = -0.5,
+		y = -1.2,
 		thickness = 2,
 		color = { 0.42, 0.58, 0.36 },
 	},

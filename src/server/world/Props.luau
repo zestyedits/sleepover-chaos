@@ -124,7 +124,7 @@ local BUILDERS: { [string]: (add: Adder) -> BasePart } = {
 			Vector3.new(2.2, 1.8, 2.2),
 			CFrame.new(0, 7.2, 0),
 			-- Warm rather than pure white: Neon is fully emissive.
-			Color3.fromRGB(240, 228, 190),
+			Color3.fromRGB(255, 205, 145),
 			Enum.Material.Neon
 		)
 	end,

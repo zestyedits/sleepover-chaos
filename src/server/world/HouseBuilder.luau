@@ -38,7 +38,7 @@ local HouseBuilder = {}
 local WALL_COLOR = Color3.fromRGB(226, 218, 206)
 -- Warm, slightly off-white. Neon is fully emissive, so this is deliberately not pure white --
 -- and it has to stay Neon so Power Outage's swap to SmoothPlastic still reads as "lights off".
-local CEILING_LIGHT_COLOR = Color3.fromRGB(235, 226, 198)
+local CEILING_LIGHT_COLOR = Color3.fromRGB(255, 212, 150)
 local TRIM_COLOR = Color3.fromRGB(158, 130, 104)
 local STAIR_COLOR = Color3.fromRGB(168, 132, 96)
 
@@ -369,10 +369,10 @@ local function buildRoom(room: any, roomsFolder: Instance)
 	local width = room.rect[3] - room.rect[1]
 	local depth = room.rect[4] - room.rect[2]
 	local light = Instance.new("PointLight")
-	light.Brightness = 1.2
+	light.Brightness = 1.9
 	light.Range = math.clamp(math.max(width, depth) * 0.85, 20, 34)
 	light.Shadows = true
-	light.Color = Color3.fromRGB(255, 244, 224)
+	light.Color = Color3.fromRGB(255, 196, 128) -- warm bulb, not daylight
 	light.Parent = lightHost
 end
 
@@ -427,9 +427,9 @@ local function buildFurniture(house: Instance)
 			CollectionService:AddTag(primary, Tags.HouseLight)
 			primary.CastShadow = false -- same self-shadowing problem as the ceiling fixtures
 			local light = Instance.new("PointLight")
-			light.Brightness = 0.85
-			light.Range = 15
-			light.Color = Color3.fromRGB(255, 236, 200)
+			light.Brightness = 1.3
+			light.Range = 17
+			light.Color = Color3.fromRGB(255, 178, 105)
 			light.Parent = primary
 		end
 	end
@@ -559,6 +559,17 @@ function HouseBuilder.build(): Instance
 		existing:Destroy()
 	end
 	atticState = nil
+
+	-- Clear whatever the place template shipped. Rojo cannot delete instances it does not
+	-- manage, so a stock Baseplate survives every sync -- and its top face is at exactly y = 0,
+	-- the same plane as every room floor slab, which z-fights across the entire house. The
+	-- template SpawnLocation is worse than cosmetic: it is a real spawn competing with ours, so
+	-- players can arrive outside the house entirely.
+	for _, child in Workspace:GetChildren() do
+		if child:IsA("SpawnLocation") or (child:IsA("BasePart") and child.Name == "Baseplate") then
+			child:Destroy()
+		end
+	end
 
 	local house = Instance.new("Model")
 	house.Name = "House"
