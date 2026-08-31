@@ -36,6 +36,10 @@ local FURNITURE_FOLDER = "FurnitureModels"
 
 local DEFAULT_MARKER_SIZE = Vector3.new(6, 6, 6)
 
+-- How far above the floor a spawn pad sits. Enough that the pad is not co-planar with the slab
+-- and z-fighting, small enough that nobody falls on arrival.
+local SPAWN_CLEARANCE = 0.5
+
 local currentMapId: string? = nil
 local problems: { string } = {}
 
@@ -223,6 +227,20 @@ local function tagAnchor(house: Instance, cframe: CFrame, activity: string, kind
 	CollectionService:AddTag(part, Tags.ActivityAnchor)
 end
 
+local function makeSpawn(parent: Instance, cframe: CFrame, name: string)
+	local spawn = Instance.new("SpawnLocation")
+	spawn.Name = name
+	spawn.Size = Vector3.new(6, 1, 6)
+	spawn.Transparency = 1
+	spawn.CanCollide = false
+	spawn.Anchored = true
+	spawn.Neutral = true
+	spawn.Duration = 0
+	spawn.CFrame = cframe
+	spawn.Parent = parent
+	CollectionService:AddTag(spawn, Tags.SpawnPoint)
+end
+
 local function annotate(house: Instance, origin: CFrame, annotations: any)
 	if not annotations then
 		return
@@ -243,6 +261,19 @@ local function annotate(house: Instance, origin: CFrame, annotations: any)
 	end
 
 	for index, ref in annotations.spawns or {} do
+		-- A positional spawn already names a point on the floor, so the pad goes straight there.
+		-- Routing it through the generic marker path instead would centre a 6x6x6 box on the
+		-- floor and then lift the pad by half of it, dropping every player 4 studs on arrival.
+		if type(ref) == "table" and ref.at and not ref.path then
+			local at = ref.at
+			makeSpawn(
+				house,
+				origin * CFrame.new(at[1] or 0, (at[2] or 0) + SPAWN_CLEARANCE, at[3] or 0),
+				`Spawn_{index}`
+			)
+			continue
+		end
+
 		local node = resolveNode(house, origin, ref, "spawn")
 		if not node then
 			continue
@@ -252,18 +283,13 @@ local function annotate(house: Instance, origin: CFrame, annotations: any)
 			node.Duration = 0
 			CollectionService:AddTag(node, Tags.SpawnPoint)
 		elseif node:IsA("BasePart") then
-			-- A plain part or a positional marker is fine; give it a real SpawnLocation on top.
-			local spawn = Instance.new("SpawnLocation")
-			spawn.Name = `Spawn_{index}`
-			spawn.Size = Vector3.new(6, 1, 6)
-			spawn.Transparency = 1
-			spawn.CanCollide = false
-			spawn.Anchored = true
-			spawn.Neutral = true
-			spawn.Duration = 0
-			spawn.CFrame = node.CFrame + Vector3.new(0, node.Size.Y / 2 + 1, 0)
-			spawn.Parent = node
-			CollectionService:AddTag(spawn, Tags.SpawnPoint)
+			-- Pointing at a real prop means "spawn on top of this", so here the lift by half the
+			-- part's height is what you want.
+			makeSpawn(
+				node,
+				node.CFrame + Vector3.new(0, node.Size.Y / 2 + SPAWN_CLEARANCE, 0),
+				`Spawn_{index}`
+			)
 		else
 			complain(`spawn: a {node.ClassName} is not a part or SpawnLocation`)
 		end
