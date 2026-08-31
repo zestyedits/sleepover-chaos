@@ -31,6 +31,7 @@ CosmeticService.start()
 
 -- 3. World: load the configured house (procedural, or a model from assets/houses), then wire
 -- interactions on its tagged props.
+HouseLoader.ensureToolboxFolder() -- somewhere obvious to drop Toolbox models
 HouseLoader.load()
 InteractionService.start()
 

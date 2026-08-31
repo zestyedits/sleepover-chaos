@@ -1,8 +1,18 @@
 --!strict
 -- MapConfig — the registry of playable houses.
 --
--- A map is either PROCEDURAL (HouseBuilder emits it from HouseConfig) or a MODEL: a .rbxmx
--- dropped into assets/houses/, which Rojo syncs to ServerStorage.HouseModels.
+-- A map is either PROCEDURAL (HouseBuilder emits it from HouseConfig) or a MODEL. There are two
+-- places a model can live, and which one you use depends on how you got it:
+--
+--   ServerStorage.ToolboxHouses   Studio drops. Insert straight from the Toolbox into this
+--                                 folder and save the place. NOT Rojo-managed, so it survives
+--                                 syncs -- but it lives in the .rbxl, not in git.
+--   ServerStorage.HouseModels     Rojo-managed, synced from assets/houses/*.rbxmx. Version
+--                                 controlled. Anything here that is not on disk gets DELETED on
+--                                 the next sync, so never drop a Toolbox model in here.
+--
+-- HouseLoader checks ToolboxHouses first, then HouseModels, so you can prototype with a Toolbox
+-- insert and later export it to assets/houses/ without touching config.
 --
 -- ── Why a model needs almost nothing from us ────────────────────────────────────────────────
 -- Gameplay never inspects geometry. Hide & Seek asks CollectionService for SC_HidingSpot,
@@ -58,8 +68,12 @@ export type MapDef = {
 	id: string,
 	displayName: string,
 	source: "Procedural" | "Model",
-	model: string?, -- child name under ServerStorage.HouseModels, for source = "Model"
+	model: string?, -- child name in ToolboxHouses or HouseModels, for source = "Model"
 	annotations: Annotations?,
+	-- Toolbox models are a well-known vector for backdoor scripts, so HouseLoader strips every
+	-- Script/LocalScript/ModuleScript out of a cloned house by default and reports the count.
+	-- A house is geometry; it should not need code. Only set this if you have read them.
+	allowScripts: boolean?,
 }
 
 local MapConfig = {
@@ -83,7 +97,8 @@ local MapConfig = {
 		-- 	id = "CozyCottage",
 		-- 	displayName = "Cozy Cottage",
 		-- 	source = "Model",
-		-- 	model = "CozyCottage", -- assets/houses/CozyCottage.rbxmx
+		-- 	model = "CozyCottage", -- ServerStorage.ToolboxHouses.CozyCottage, or
+		-- 	                       -- assets/houses/CozyCottage.rbxmx
 		-- 	annotations = {
 		-- 		rooms = {
 		-- 			{ path = "Interior/LivingRoom", displayName = "Living Room" },

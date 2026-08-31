@@ -1,14 +1,39 @@
 # House models
 
-Drop a house here as **`YourHouse.rbxmx`** (or `.rbxm`). Rojo syncs this folder to
+There are two places a house can live. Which you use depends on how you got it.
+
+## Inserting from the Toolbox (Studio)
+
+Insert the model into **`ServerStorage/ToolboxHouses`** and save the place.
+
+> **Do not drop Toolbox models into `ServerStorage/HouseModels`.** That folder is Rojo-managed,
+> and Rojo deletes anything under it that is not on disk — your model would vanish on the next
+> sync. `ToolboxHouses` is deliberately not in the Rojo project for exactly this reason.
+
+The folder is created automatically on server start, and already exists in the place.
+
+**Scripts are stripped on load.** Free Toolbox models are a well-known carrier for backdoor
+scripts, and a house needs no code to be a house, so `HouseLoader` destroys every
+`Script` / `LocalScript` / `ModuleScript` in the clone and warns with a count. Set
+`allowScripts = true` on the map only if you have actually read them.
+
+## Committing a house to git (this folder)
+
+Drop it here as **`YourHouse.rbxmx`** (or `.rbxm`). Rojo syncs this folder to
 `ServerStorage/HouseModels`, so the file name becomes the model name.
 
 ```
 assets/houses/CozyCottage.rbxmx   ->   ServerStorage.HouseModels.CozyCottage
 ```
 
-Then add an entry to [`src/shared/config/MapConfig.luau`](../../src/shared/config/MapConfig.luau)
-and point `MapConfig.default` at its `id`. There's a commented template in that file to copy.
+To move a Toolbox house into version control: right-click it in Studio → *Save to File*, drop the
+file here, delete it from `ToolboxHouses`. No config change needed — the loader checks
+`ToolboxHouses` first, then `HouseModels`, and the name is what matters.
+
+## Either way
+
+Add an entry to [`src/shared/config/MapConfig.luau`](../../src/shared/config/MapConfig.luau) and
+point `MapConfig.default` at its `id`. There's a commented template in that file to copy.
 
 ## The only thing a house has to do
 

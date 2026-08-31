@@ -27,6 +27,12 @@ local HouseBuilder = require(script.Parent.HouseBuilder)
 
 local HouseLoader = {}
 
+-- Studio drops live here. Deliberately NOT in default.project.json: Rojo deletes instances it
+-- manages that are absent from disk, so a Toolbox insert placed under the Rojo-managed
+-- HouseModels folder would vanish on the next sync.
+local TOOLBOX_FOLDER = "ToolboxHouses"
+local SYNCED_FOLDER = "HouseModels"
+
 local currentMapId: string? = nil
 local problems: { string } = {}
 
@@ -202,6 +208,49 @@ local function annotate(house: Instance, annotations: any)
 end
 
 --------------------------------------------------------------------------------------------------
+-- Sourcing
+--------------------------------------------------------------------------------------------------
+
+-- Make sure the Toolbox drop folder exists so there is somewhere obvious to insert into. It is
+-- created here rather than declared in the Rojo project precisely so Rojo will not manage it.
+function HouseLoader.ensureToolboxFolder(): Folder
+	local existing = ServerStorage:FindFirstChild(TOOLBOX_FOLDER)
+	if existing and existing:IsA("Folder") then
+		return existing
+	end
+	local folder = Instance.new("Folder")
+	folder.Name = TOOLBOX_FOLDER
+	folder.Parent = ServerStorage
+	return folder
+end
+
+-- Toolbox drops win over synced ones, so you can prototype with an insert and later export the
+-- same name to assets/houses/ without editing config.
+local function findTemplate(modelName: string): (Instance?, string?)
+	for _, folderName in { TOOLBOX_FOLDER, SYNCED_FOLDER } do
+		local folder = ServerStorage:FindFirstChild(folderName)
+		local template = folder and folder:FindFirstChild(modelName)
+		if template then
+			return template, folderName
+		end
+	end
+	return nil, nil
+end
+
+-- A house is geometry. Free Toolbox models are a well-known carrier for backdoor scripts, and
+-- nothing about a house needs code to run, so strip it unless the map explicitly opts in.
+local function stripScripts(house: Instance): number
+	local removed = 0
+	for _, descendant in house:GetDescendants() do
+		if descendant:IsA("LuaSourceContainer") then
+			removed += 1
+			descendant:Destroy()
+		end
+	end
+	return removed
+end
+
+--------------------------------------------------------------------------------------------------
 -- Validation
 --------------------------------------------------------------------------------------------------
 
@@ -276,13 +325,15 @@ function HouseLoader.load(mapId: string?): Instance
 		return HouseBuilder.build()
 	end
 
-	local library = ServerStorage:FindFirstChild("HouseModels")
-	local template = library and map.model and library:FindFirstChild(map.model)
+	HouseLoader.ensureToolboxFolder()
+	local template, foundIn = findTemplate(map.model or "")
 	if not template then
 		warn(
-			`[HouseLoader] map "{id}" wants model "{map.model}" in ServerStorage.HouseModels, `
-				.. "which is not there — falling back to the procedural house. Drop the .rbxmx "
-				.. "into assets/houses/ and re-sync."
+			`[HouseLoader] map "{id}" wants a model named "{map.model}", which is in neither `
+				.. `ServerStorage.{TOOLBOX_FOLDER} nor ServerStorage.{SYNCED_FOLDER}. Falling back `
+				.. "to the procedural house. Insert it from the Toolbox into "
+				.. `ServerStorage.{TOOLBOX_FOLDER} and save the place, or put a .rbxmx in `
+				.. "assets/houses/ and re-sync."
 		)
 		currentMapId = "Greybox"
 		return HouseBuilder.build()
@@ -302,7 +353,20 @@ function HouseLoader.load(mapId: string?): Instance
 
 	local house = template:Clone()
 	house.Name = "House"
+
+	if not map.allowScripts then
+		local removed = stripScripts(house)
+		if removed > 0 then
+			warn(
+				`[HouseLoader] stripped {removed} script(s) from "{map.model}". A house model `
+					.. "should be geometry only; set allowScripts on the map if you have read "
+					.. "them and want them kept."
+			)
+		end
+	end
+
 	house.Parent = Workspace
+	print(`[HouseLoader] loaded "{map.model}" from ServerStorage.{foundIn}`)
 
 	annotate(house, map.annotations)
 	validate(house)
