@@ -19,28 +19,87 @@ export type CosmeticDef = {
 local CosmeticConfig = {
 	catalog = {
 		-- Pajamas
-		{ id = "pj_classic", displayName = "Classic PJs", slot = "Pajamas", default = true, color = { 0.6, 0.7, 0.9 } },
-		{ id = "pj_star", displayName = "Starry Night PJs", slot = "Pajamas", starCost = 120, color = { 0.2, 0.2, 0.5 } },
-		{ id = "pj_glam", displayName = "Glam Robe", slot = "Pajamas", robuxProductId = 0, color = { 0.9, 0.3, 0.6 } },
+		{
+			id = "pj_classic",
+			displayName = "Classic PJs",
+			slot = "Pajamas",
+			default = true,
+			color = { 0.6, 0.7, 0.9 },
+		},
+		{
+			id = "pj_star",
+			displayName = "Starry Night PJs",
+			slot = "Pajamas",
+			starCost = 120,
+			color = { 0.2, 0.2, 0.5 },
+		},
+		{
+			id = "pj_glam",
+			displayName = "Glam Robe",
+			slot = "Pajamas",
+			robuxProductId = 0,
+			color = { 0.9, 0.3, 0.6 },
+		},
 
 		-- Slippers
-		{ id = "slip_bunny", displayName = "Bunny Slippers", slot = "Slippers", default = true, color = { 0.95, 0.9, 0.9 } },
-		{ id = "slip_dino", displayName = "Dino Slippers", slot = "Slippers", starCost = 80, color = { 0.4, 0.8, 0.4 } },
+		{
+			id = "slip_bunny",
+			displayName = "Bunny Slippers",
+			slot = "Slippers",
+			default = true,
+			color = { 0.95, 0.9, 0.9 },
+		},
+		{
+			id = "slip_dino",
+			displayName = "Dino Slippers",
+			slot = "Slippers",
+			starCost = 80,
+			color = { 0.4, 0.8, 0.4 },
+		},
 
 		-- Plushies (carried)
-		{ id = "plush_bear", displayName = "Teddy Bear", slot = "Plushie", default = true, color = { 0.7, 0.5, 0.3 } },
-		{ id = "plush_cat", displayName = "Sleepy Cat", slot = "Plushie", starCost = 100, color = { 0.8, 0.8, 0.85 } },
+		{
+			id = "plush_bear",
+			displayName = "Teddy Bear",
+			slot = "Plushie",
+			default = true,
+			color = { 0.7, 0.5, 0.3 },
+		},
+		{
+			id = "plush_cat",
+			displayName = "Sleepy Cat",
+			slot = "Plushie",
+			starCost = 100,
+			color = { 0.8, 0.8, 0.85 },
+		},
 
 		-- Phone skins
-		{ id = "phone_default", displayName = "Plain Case", slot = "PhoneSkin", default = true, color = { 0.2, 0.2, 0.2 } },
-		{ id = "phone_holo", displayName = "Holo Case", slot = "PhoneSkin", starCost = 60, color = { 0.6, 0.9, 0.95 } },
+		{
+			id = "phone_default",
+			displayName = "Plain Case",
+			slot = "PhoneSkin",
+			default = true,
+			color = { 0.2, 0.2, 0.2 },
+		},
+		{
+			id = "phone_holo",
+			displayName = "Holo Case",
+			slot = "PhoneSkin",
+			starCost = 60,
+			color = { 0.6, 0.9, 0.95 },
+		},
 
 		-- Emotes
 		{ id = "emote_wave", displayName = "Wave", slot = "Emote", default = true },
 		{ id = "emote_dance", displayName = "Sleepover Shuffle", slot = "Emote", starCost = 150 },
 
 		-- Nameplates
-		{ id = "plate_default", displayName = "Default Nameplate", slot = "Nameplate", default = true },
+		{
+			id = "plate_default",
+			displayName = "Default Nameplate",
+			slot = "Nameplate",
+			default = true,
+		},
 		{ id = "plate_gold", displayName = "Golden Nameplate", slot = "Nameplate", starCost = 300 },
 
 		-- Themes (cosmetic room/effect themes, GDD §11)

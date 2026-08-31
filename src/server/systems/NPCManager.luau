@@ -181,7 +181,9 @@ function NPCManager.reactScatter()
 		local humanoid = guest:FindFirstChildOfClass("Humanoid")
 		local root = guest.PrimaryPart
 		if humanoid and root then
-			humanoid:MoveTo(root.Position + Vector3.new(math.random(-20, 20), 0, math.random(-20, 20)))
+			humanoid:MoveTo(
+				root.Position + Vector3.new(math.random(-20, 20), 0, math.random(-20, 20))
+			)
 		end
 	end
 end

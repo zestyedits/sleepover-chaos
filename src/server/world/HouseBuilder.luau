@@ -175,7 +175,11 @@ local function buildAnchors(house: Instance)
 			Transparency = 1,
 			CanCollide = false,
 			Tags = { Tags.ActivityAnchor },
-			Attributes = { Activity = anchor.activity, Kind = anchor.kind or "main", Room = anchor.room },
+			Attributes = {
+				Activity = anchor.activity,
+				Kind = anchor.kind or "main",
+				Room = anchor.room,
+			},
 		}, folder)
 	end
 end

@@ -74,9 +74,10 @@ function NotificationsController.start(parent: ScreenGui)
 		toast(message, UIUtil.styleColor(style or "info"), style == "chaos")
 	end)
 
-	Remotes.event("ChaosEvent").OnClientEvent:Connect(function(displayName: string, description: string)
-		toast(`{displayName}: {description}`, UIUtil.palette.chaos, true)
-	end)
+	Remotes.event("ChaosEvent").OnClientEvent
+		:Connect(function(displayName: string, description: string)
+			toast(`{displayName}: {description}`, UIUtil.palette.chaos, true)
+		end)
 
 	Remotes.event("ScrapbookUnlocked").OnClientEvent:Connect(function(id: string, info)
 		local prefix = info and info.rare and "🌟 Rare Memory!" or "📖 New Memory"

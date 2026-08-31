@@ -57,14 +57,17 @@ end
 -- Pick the next activity def (no immediate repeat).
 function ActivityManager.pickNext(): any?
 	local pool = selectionPool()
-	return RandomUtil.weightedAvoiding(pool, (function()
-		for _, def in ActivityConfig.activities do
-			if def.id == lastRunId then
-				return def
+	return RandomUtil.weightedAvoiding(
+		pool,
+		(function()
+			for _, def in ActivityConfig.activities do
+				if def.id == lastRunId then
+					return def
+				end
 			end
-		end
-		return nil
-	end)())
+			return nil
+		end)()
+	)
 end
 
 -- Run one activity to completion. BLOCKS until finished (called from GameRoundManager's thread).

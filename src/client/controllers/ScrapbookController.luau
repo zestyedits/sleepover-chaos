@@ -24,7 +24,8 @@ local function refresh()
 		row.status.Text = isUnlocked and "✅" or "🔒"
 		row.frame.BackgroundTransparency = isUnlocked and 0.05 or 0.5
 		if def and def.rare then
-			row.frame.BackgroundColor3 = isUnlocked and UIUtil.palette.accent or UIUtil.palette.panel
+			row.frame.BackgroundColor3 = isUnlocked and UIUtil.palette.accent
+				or UIUtil.palette.panel
 		end
 	end
 end

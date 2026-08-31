@@ -33,7 +33,8 @@ local function refresh()
 			statusLabel.TextColor3 = UIUtil.palette.accent2
 		elseif def.starCost then
 			statusLabel.Text = `⭐ {def.starCost}`
-			statusLabel.TextColor3 = (stars >= def.starCost) and UIUtil.palette.warn or UIUtil.palette.subtext
+			statusLabel.TextColor3 = (stars >= def.starCost) and UIUtil.palette.warn
+				or UIUtil.palette.subtext
 		else
 			statusLabel.Text = "Robux (soon)"
 			statusLabel.TextColor3 = UIUtil.palette.subtext

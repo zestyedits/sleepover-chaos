@@ -27,7 +27,8 @@ local function spawnContraband(ctx: any): { BasePart }
 		part.Size = Vector3.new(2, 1, 2)
 		part.Color = Color3.new(0.9, 0.3, 0.3)
 		part.Anchored = true
-		part.CFrame = CFrame.new(origin + Vector3.new(math.random(-12, 12), 1, math.random(-10, 10)))
+		part.CFrame =
+			CFrame.new(origin + Vector3.new(math.random(-12, 12), 1, math.random(-10, 10)))
 		part:SetAttribute("Role", "Contraband")
 		part:SetAttribute("Label", CONTRABAND_NAMES[i])
 		part:SetAttribute("ActionText", "Hide it!")

@@ -66,8 +66,13 @@ return ActivityBase.extend("HideAndSeek", {
 					end
 					for _, other in ctx.players do
 						if other ~= seeker and not caught[other] and not hidden[other] then
-							local root = other.Character and other.Character:FindFirstChild("HumanoidRootPart")
-							if root and (root.Position - (seekerRoot :: BasePart).Position).Magnitude <= TAG_RANGE then
+							local root = other.Character
+								and other.Character:FindFirstChild("HumanoidRootPart")
+							if
+								root
+								and (root.Position - (seekerRoot :: BasePart).Position).Magnitude
+									<= TAG_RANGE
+							then
 								caught[other] = true
 								ctx.addScore(seeker, settings.pointsPerCatch or 2)
 								ctx.announce(`{seeker.Name} caught {other.Name}!`, "event")

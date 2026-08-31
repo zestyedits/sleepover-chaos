@@ -56,7 +56,8 @@ local function build()
 			continue
 		end
 		if RunService:IsServer() then
-			local instance = Instance.new(if kind == "Function" then "RemoteFunction" else "RemoteEvent")
+			local instance =
+				Instance.new(if kind == "Function" then "RemoteFunction" else "RemoteEvent")
 			instance.Name = name
 			instance.Parent = folder
 			cache[name] = instance

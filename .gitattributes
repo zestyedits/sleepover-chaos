@@ -1,0 +1,10 @@
+# The toolchain is line-ending sensitive: stylua.toml pins `line_endings = "Unix"`, so a
+# Windows checkout under core.autocrlf=true would fail `stylua --check` on every file even
+# though the committed content is already LF. Pinning it here beats asking each dev to
+# change a global git setting.
+* text=auto eol=lf
+*.rbxlx binary
+*.rbxl binary
+*.rbxm binary
+*.rbxmx binary
+*.png binary

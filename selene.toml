@@ -1,4 +1,4 @@
-std = "roblox"
+std = "roblox+testez"
 
 [lints]
 # Prototype-friendly: these are informative rather than blocking.

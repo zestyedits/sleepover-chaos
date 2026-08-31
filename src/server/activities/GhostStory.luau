@@ -44,9 +44,21 @@ local STORY = {
 			{ label = "Stay hidden till morning", next = "ending_safe" },
 		},
 	},
-	ending_brave = { id = "ending_brave", text = "It was just a raccoon. A VERY startled raccoon. The end.", choices = {} },
-	ending_dark = { id = "ending_dark", text = "The dark swallows the room. Good story. Great timing. The end.", choices = {} },
-	ending_safe = { id = "ending_safe", text = "Nothing happened. You lived. Boring, but you lived. The end.", choices = {} },
+	ending_brave = {
+		id = "ending_brave",
+		text = "It was just a raccoon. A VERY startled raccoon. The end.",
+		choices = {},
+	},
+	ending_dark = {
+		id = "ending_dark",
+		text = "The dark swallows the room. Good story. Great timing. The end.",
+		choices = {},
+	},
+	ending_safe = {
+		id = "ending_safe",
+		text = "Nothing happened. You lived. Boring, but you lived. The end.",
+		choices = {},
+	},
 }
 
 return ActivityBase.extend("GhostStory", {
@@ -59,11 +71,12 @@ return ActivityBase.extend("GhostStory", {
 
 		local settings = ctx.config
 		local votes: { [Player]: number } = {}
-		local voteConn = Remotes.event("GhostStoryChoice").OnServerEvent:Connect(function(player, choiceIndex)
-			if typeof(choiceIndex) == "number" then
-				votes[player] = choiceIndex
-			end
-		end)
+		local voteConn = Remotes.event("GhostStoryChoice").OnServerEvent
+			:Connect(function(player, choiceIndex)
+				if typeof(choiceIndex) == "number" then
+					votes[player] = choiceIndex
+				end
+			end)
 		ctx.trove:Add(voteConn)
 
 		-- Drive the story in its own thread; the run loop still enforces the duration cap.

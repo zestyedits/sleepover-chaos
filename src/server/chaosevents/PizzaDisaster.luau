@@ -43,7 +43,10 @@ return ChaosEventBase.extend("PizzaDisaster", {
 		ctx.trove:Add(box)
 
 		local unregister = InteractionService.register("Pizza", function(player)
-			ctx.announce(`{player.Name} refuses to eat the {topping} pizza. Understandable.`, "info")
+			ctx.announce(
+				`{player.Name} refuses to eat the {topping} pizza. Understandable.`,
+				"info"
+			)
 		end)
 		ctx.trove:AddCleanup(unregister)
 

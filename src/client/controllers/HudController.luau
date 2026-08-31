@@ -118,9 +118,10 @@ function HudController.start(parent: ScreenGui)
 		setPhaseText()
 	end)
 
-	Remotes.event("ActivityStarted").OnClientEvent:Connect(function(displayName: string, objective: string)
-		objectiveLabel.Text = objective or ""
-	end)
+	Remotes.event("ActivityStarted").OnClientEvent
+		:Connect(function(displayName: string, objective: string)
+			objectiveLabel.Text = objective or ""
+		end)
 
 	Remotes.event("ActivityEnded").OnClientEvent:Connect(function(displayName: string, summary)
 		if summary and summary.topName then

@@ -151,7 +151,9 @@ local function tryDetectMemoryFallback()
 	end)
 	if not ok then
 		useMemoryStore = true
-		warn("[PlayerDataService] DataStores unavailable — using in-memory store (data won't persist).")
+		warn(
+			"[PlayerDataService] DataStores unavailable — using in-memory store (data won't persist)."
+		)
 	end
 end
 
@@ -182,11 +184,13 @@ local function loadProfile(player: Player)
 		-- Could not acquire lock (or datastore failure). Give the player a fresh, unsaved
 		-- profile so they can still play; it simply won't persist this session.
 		loaded = defaultProfile()
-		warn(`[PlayerDataService] could not load/lock profile for {player.Name}; using transient profile.`)
+		warn(
+			`[PlayerDataService] could not load/lock profile for {player.Name}; using transient profile.`
+		)
 	end
 
 	loaded._lock = nil -- keep the lock only in the store, not in the live copy
-	loaded._transient = (not ok)
+	loaded._transient = not ok
 
 	if not player:IsDescendantOf(Players) then
 		loading[player] = nil

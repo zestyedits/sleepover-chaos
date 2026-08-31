@@ -56,7 +56,10 @@ local function refreshPromptStates()
 end
 
 -- Register a handler for a role (called by an activity in onStart, via its trove for cleanup).
-function InteractionService.register(role: string, handler: (player: Player, part: BasePart) -> ()): () -> ()
+function InteractionService.register(
+	role: string,
+	handler: (player: Player, part: BasePart) -> ()
+): () -> ()
 	handlers[role] = handler
 	refreshPromptStates()
 	-- Return an unregister function the caller can add to its trove.

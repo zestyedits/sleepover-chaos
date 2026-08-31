@@ -62,43 +62,44 @@ end
 function GhostStoryController.start(parent: ScreenGui)
 	build(parent)
 
-	Remotes.event("GhostStoryPrompt").OnClientEvent:Connect(function(nodeId: string, text: string, choices: { string })
-		storyText.Text = text
-		clearChoices()
+	Remotes.event("GhostStoryPrompt").OnClientEvent
+		:Connect(function(nodeId: string, text: string, choices: { string })
+			storyText.Text = text
+			clearChoices()
 
-		if not choices or #choices == 0 then
+			if not choices or #choices == 0 then
+				panel.Visible = true
+				task.delay(4, function()
+					panel.Visible = false
+				end)
+				return
+			end
+
 			panel.Visible = true
-			task.delay(4, function()
-				panel.Visible = false
-			end)
-			return
-		end
+			for index, label in choices do
+				local button = UIUtil.make("TextButton", {
+					Parent = choiceHolder,
+					Size = UDim2.new(1, 0, 0, 34),
+					BackgroundColor3 = UIUtil.palette.accent,
+					Font = Enum.Font.GothamBold,
+					TextScaled = true,
+					TextColor3 = UIUtil.palette.bg,
+					Text = label,
+				}, { UIUtil.corner(8), UIUtil.padding(4) }) :: TextButton
 
-		panel.Visible = true
-		for index, label in choices do
-			local button = UIUtil.make("TextButton", {
-				Parent = choiceHolder,
-				Size = UDim2.new(1, 0, 0, 34),
-				BackgroundColor3 = UIUtil.palette.accent,
-				Font = Enum.Font.GothamBold,
-				TextScaled = true,
-				TextColor3 = UIUtil.palette.bg,
-				Text = label,
-			}, { UIUtil.corner(8), UIUtil.padding(4) }) :: TextButton
-
-			button.MouseButton1Click:Connect(function()
-				Remotes.event("GhostStoryChoice"):FireServer(index)
-				-- Highlight the picked option.
-				for _, other in choiceHolder:GetChildren() do
-					if other:IsA("TextButton") then
-						other.BackgroundColor3 = UIUtil.palette.panel
-						other.AutoButtonColor = false
+				button.MouseButton1Click:Connect(function()
+					Remotes.event("GhostStoryChoice"):FireServer(index)
+					-- Highlight the picked option.
+					for _, other in choiceHolder:GetChildren() do
+						if other:IsA("TextButton") then
+							other.BackgroundColor3 = UIUtil.palette.panel
+							other.AutoButtonColor = false
+						end
 					end
-				end
-				button.BackgroundColor3 = UIUtil.palette.good
-			end)
-		end
-	end)
+					button.BackgroundColor3 = UIUtil.palette.good
+				end)
+			end
+		end)
 end
 
 return GhostStoryController

@@ -73,7 +73,8 @@ return ActivityBase.extend("MidnightSnack", {
 			return true
 		end
 		-- Win when all requested snacks are collected.
-		return ctx.result.tags.requested > 0 and ctx.result.tags.collected >= ctx.result.tags.requested
+		return ctx.result.tags.requested > 0
+			and ctx.result.tags.collected >= ctx.result.tags.requested
 	end,
 
 	onFinish = function(ctx)

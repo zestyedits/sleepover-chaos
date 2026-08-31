@@ -61,7 +61,8 @@ return ActivityBase.extend("PillowFight", {
 					cooldowns[player] = now
 
 					local attackerChar = player.Character
-					local attackerRoot = attackerChar and attackerChar:FindFirstChild("HumanoidRootPart")
+					local attackerRoot = attackerChar
+						and attackerChar:FindFirstChild("HumanoidRootPart")
 					if not attackerRoot then
 						return
 					end
@@ -76,11 +77,13 @@ return ActivityBase.extend("PillowFight", {
 						if not otherRoot then
 							continue
 						end
-						local delta = (otherRoot :: BasePart).Position - (attackerRoot :: BasePart).Position
+						local delta = (otherRoot :: BasePart).Position
+							- (attackerRoot :: BasePart).Position
 						if delta.Magnitude <= HIT_RANGE then
 							ctx.addScore(player, pointsPerHit)
-							local push = delta.Unit * (mega and 60 or 30) + Vector3.new(0, mega and 30 or 15, 0)
-							;(otherRoot :: BasePart).AssemblyLinearVelocity = push
+							local push = delta.Unit * (mega and 60 or 30)
+								+ Vector3.new(0, mega and 30 or 15, 0);
+							(otherRoot :: BasePart).AssemblyLinearVelocity = push
 						end
 					end
 				end)
