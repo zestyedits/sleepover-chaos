@@ -102,6 +102,53 @@ into obbies (GDD §17).
 3. Press **Play**. You'll spawn in the living room; NPC guests fill the party; the round loop
    cycles Arrive → Activity → Free Time → Random Event → Activity → Late-Night Chaos → Morning.
 
+## Rojo → Studio sync
+
+**The plugin and the CLI must be the same version.** They are not merely "compatible if close":
+7.7.0 changed the handshake wire format from JSON to msgpack, so a 7.7.0 plugin talking to a
+7.4.x server decodes the JSON body's first byte `{` (`0x7B`) as a msgpack positive fixint, gets
+the number `123` back instead of a table, and dies on the next line:
+
+```
+ApiContext:28: attempt to index number with 'protocolVersion'
+... function rejectWrongProtocolVersion
+```
+
+That error looks like a network or firewall problem and is not one — the bytes arrived fine, the
+plugin just could not parse them. A firewall block produces a *connection* error, never a decode
+error.
+
+Keep them in lockstep by installing the plugin **from the pinned CLI**, which writes
+`%LOCALAPPDATA%/Roblox/Plugins/RojoManagedPlugin.rbxm`:
+
+```sh
+rokit install          # gets the CLI version pinned in rokit.toml
+rojo plugin install    # writes the MATCHING plugin, overwriting any other version
+```
+
+Restart Studio afterwards, so the newly written plugin file is the one actually loaded.
+
+Then, from the repo root:
+
+```sh
+rojo serve default.project.json     # listens on localhost:34872
+```
+
+and press **Connect** in the Rojo plugin. Confirm the server is healthy independently of Studio
+with `curl -i http://localhost:34872/api/rojo` — a 200 with `content-type: application/msgpack`
+is a working 7.7.0 server.
+
+After connecting, these three roots must exist *before* you press Play:
+
+| Roblox location | Source |
+| --- | --- |
+| `ReplicatedStorage/Shared` | `src/shared` |
+| `ServerScriptService/Server` | `src/server` |
+| `StarterPlayer/StarterPlayerScripts/Client` | `src/client` |
+
+`rojo sourcemap default.project.json` prints the same tree from the CLI side, which is the quick
+way to tell a *project mapping* problem apart from a *connection* problem.
+
 In Studio a **dev panel** appears on the left with buttons to force-run a specific activity or
 chaos event. Waiting for weighted-random to pick the one you want costs minutes per attempt, so
 use the panel when iterating. It is hidden outside Studio, and both `DevRunActivity` and
