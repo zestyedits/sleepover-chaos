@@ -1,0 +1,6 @@
+std = "roblox"
+
+[lints]
+# Prototype-friendly: these are informative rather than blocking.
+unused_variable = "warn"
+shadowing = "warn"
