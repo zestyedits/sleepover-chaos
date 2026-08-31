@@ -42,11 +42,6 @@ local CEILING_LIGHT_COLOR = Color3.fromRGB(206, 158, 104)
 local TRIM_COLOR = Color3.fromRGB(172, 132, 92)
 local STAIR_COLOR = Color3.fromRGB(190, 148, 100)
 
--- There is exactly one house, so the attic hatch state lives here rather than being re-derived.
--- Rebuilding the house replaces it.
-type AtticState = { hatch: BasePart, ladder: BasePart, closed: CFrame, opened: CFrame }
-local atticState: AtticState? = nil
-
 --------------------------------------------------------------------------------------------------
 -- Lookups
 --------------------------------------------------------------------------------------------------
@@ -482,31 +477,42 @@ local function buildAtticAccess(house: Instance)
 	ladder.Parent = folder
 	CollectionService:AddTag(ladder, Tags.AtticLadder)
 
-	atticState = { hatch = hatch, ladder = ladder, closed = closed, opened = opened }
+	-- The two poses live on the part, so setAtticOpen needs no module state and works on any
+	-- house whose hatch was annotated the same way.
+	hatch:SetAttribute("ClosedCFrame", closed)
+	hatch:SetAttribute("OpenedCFrame", opened)
 	HouseBuilder.setAtticOpen(false)
 end
 
 -- The single owner of the attic's physical state. StrangeNoise calls this; nothing else touches
 -- the hatch or ladder directly.
 function HouseBuilder.setAtticOpen(open: boolean)
-	local state = atticState
-	if not state or not state.hatch.Parent or not state.ladder.Parent then
-		return
+	-- Found by tag, with the two poses carried as attributes on the hatch, so this works for a
+	-- procedurally built house AND for an imported model whose hatch we only annotated.
+	for _, hatch in CollectionService:GetTagged(Tags.AtticHatch) do
+		if hatch:IsA("BasePart") then
+			local closed = hatch:GetAttribute("ClosedCFrame")
+			local opened = hatch:GetAttribute("OpenedCFrame")
+			if closed and opened then
+				hatch.CFrame = if open then opened else closed
+			end
+			hatch.CanCollide = not open
+		end
 	end
-
-	state.hatch.CFrame = if open then state.opened else state.closed
-	state.hatch.CanCollide = not open
-	state.ladder.CanCollide = open
-	state.ladder.Transparency = if open then 0 else 1
-
+	for _, ladder in CollectionService:GetTagged(Tags.AtticLadder) do
+		if ladder:IsA("BasePart") then
+			ladder.CanCollide = open
+			ladder.Transparency = if open then 0 else 1
+		end
+	end
 	for _, folder in CollectionService:GetTagged(Tags.SecretArea) do
 		folder:SetAttribute("Open", open)
 	end
 end
 
 function HouseBuilder.isAtticOpen(): boolean
-	local state = atticState
-	return state ~= nil and state.ladder.CanCollide
+	local ladder = CollectionService:GetTagged(Tags.AtticLadder)[1]
+	return ladder ~= nil and (ladder :: BasePart).CanCollide
 end
 
 --------------------------------------------------------------------------------------------------
@@ -562,7 +568,6 @@ function HouseBuilder.build(): Instance
 	if existing then
 		existing:Destroy()
 	end
-	atticState = nil
 
 	-- Clear whatever the place template shipped. Rojo cannot delete instances it does not
 	-- manage, so a stock Baseplate survives every sync -- and its top face is at exactly y = 0,
@@ -635,15 +640,17 @@ function HouseBuilder.build(): Instance
 end
 
 -- Find the anchor part for a given activity id (used by activity modules).
+--
+-- Tag-driven rather than folder-driven on purpose: an imported house model puts its anchors
+-- wherever its author put them, so "look inside House/Anchors" would only ever work for the
+-- procedural build. The `house` argument is kept for call-site clarity and to scope the search.
 function HouseBuilder.getAnchor(house: Instance, activity: string, kind: string?): BasePart?
-	local anchors = house:FindFirstChild("Anchors")
-	if not anchors then
-		return nil
-	end
-	for _, part in anchors:GetChildren() do
-		if part:GetAttribute("Activity") == activity then
-			if kind == nil or part:GetAttribute("Kind") == kind then
-				return part :: BasePart
+	for _, part in CollectionService:GetTagged(Tags.ActivityAnchor) do
+		if part:IsA("BasePart") and part:IsDescendantOf(house) then
+			if part:GetAttribute("Activity") == activity then
+				if kind == nil or part:GetAttribute("Kind") == kind then
+					return part
+				end
 			end
 		end
 	end

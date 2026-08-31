@@ -55,6 +55,12 @@
         "$path": "src/shared"
       }
     },
+    "ServerStorage": {
+      "$className": "ServerStorage",
+      "HouseModels": {
+        "$path": "assets/houses"
+      }
+    },
     "ServerScriptService": {
       "$className": "ServerScriptService",
       "Server": {

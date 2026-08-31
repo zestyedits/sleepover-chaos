@@ -19,7 +19,7 @@ local NPCManager = require(systems.NPCManager)
 local ActivityManager = require(systems.ActivityManager)
 local EventManager = require(systems.EventManager)
 local GameRoundManager = require(systems.GameRoundManager)
-local HouseBuilder = require(world.HouseBuilder)
+local HouseLoader = require(world.HouseLoader)
 
 -- 1. Networking (server creates the remote instances first).
 Remotes.init()
@@ -29,8 +29,9 @@ PlayerDataService.start()
 RewardService.start()
 CosmeticService.start()
 
--- 3. World: build the one house, then wire interactions on its tagged props.
-HouseBuilder.build()
+-- 3. World: load the configured house (procedural, or a model from assets/houses), then wire
+-- interactions on its tagged props.
+HouseLoader.load()
 InteractionService.start()
 
 -- 4. Population + content managers.

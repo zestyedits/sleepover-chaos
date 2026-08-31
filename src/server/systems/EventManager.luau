@@ -16,7 +16,7 @@ local RandomUtil = require(Shared.util.RandomUtil)
 local Remotes = require(Shared.net.Remotes)
 
 local RewardService = require(script.Parent.RewardService)
-local HouseBuilder = require(script.Parent.Parent.world.HouseBuilder)
+local HouseLoader = require(script.Parent.Parent.world.HouseLoader)
 
 local EventManager = {}
 
@@ -71,7 +71,7 @@ local function runDef(def: any): any?
 	running = true
 	lastRunId = def.id
 
-	local house = Workspace:FindFirstChild("House") or HouseBuilder.build()
+	local house = Workspace:FindFirstChild("House") or HouseLoader.load()
 	local runnable = factory.create(def)
 	runnable.countdown = GameConfig.eventCountdown
 
