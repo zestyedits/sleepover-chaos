@@ -146,9 +146,15 @@ local MapConfig = {
 			id = "GeoHomes",
 			displayName = "Geo Homes House",
 			source = "Model",
-			-- Currently a Toolbox insert in ServerStorage.ToolboxHouses. Save it to
-			-- assets/approved-imports/houses/ to get it into git under the same name.
-			model = "Geo Homes House",
+			-- assets/approved-imports/houses/GeoHomes.rbxm -> ServerStorage.HouseModels.GeoHomes.
+			-- The FILE NAME becomes the instance name, which is why this is "GeoHomes" and not
+			-- the "Geo Homes House" the model is called inside Studio.
+			--
+			-- The original Toolbox insert is still in ServerStorage.ToolboxHouses. It no longer
+			-- wins the lookup -- findTemplate checks that folder first, but for a child named
+			-- "GeoHomes", which only the synced copy has. The git-tracked file is authoritative
+			-- now, so the Toolbox copy is safe to delete whenever you feel like tidying.
+			model = "GeoHomes",
 
 			-- Every position below was MEASURED, not guessed. The standable volume of each storey
 			-- was flood-filled, then each room's point was chosen as its furthest-from-any-wall
