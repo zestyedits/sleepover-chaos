@@ -2,6 +2,46 @@
   "name": "SleepoverChaos",
   "tree": {
     "$className": "DataModel",
+    "Lighting": {
+      "$className": "Lighting",
+      "Atmosphere": {
+        "$className": "Atmosphere",
+        "$properties": {
+          "Density": 0.2,
+          "Glare": 0.0,
+          "Haze": 0.0
+        }
+      },
+      "Bloom": {
+        "$className": "BloomEffect",
+        "$properties": {
+          "Enabled": false
+        }
+      },
+      "DepthOfField": {
+        "$className": "DepthOfFieldEffect",
+        "$properties": {
+          "Enabled": false
+        }
+      },
+      "SunRays": {
+        "$className": "SunRaysEffect",
+        "$properties": {
+          "Enabled": false
+        }
+      },
+      "$properties": {
+        "Ambient": [
+          0.3,
+          0.3,
+          0.38
+        ],
+        "Brightness": 1.0,
+        "ClockTime": 22.0,
+        "GlobalShadows": true,
+        "Technology": "Future"
+      }
+    },
     "ReplicatedStorage": {
       "$className": "ReplicatedStorage",
       "Shared": {
@@ -12,6 +52,12 @@
       "$className": "ServerScriptService",
       "Server": {
         "$path": "src/server"
+      }
+    },
+    "SoundService": {
+      "$className": "SoundService",
+      "$properties": {
+        "RespectFilteringEnabled": true
       }
     },
     "StarterPlayer": {
@@ -26,24 +72,8 @@
     "Workspace": {
       "$className": "Workspace",
       "$properties": {
-        "Gravity": 196.2,
-        "FilteringEnabled": true
-      }
-    },
-    "Lighting": {
-      "$className": "Lighting",
-      "$properties": {
-        "Ambient": [0.35, 0.35, 0.45],
-        "Brightness": 2,
-        "ClockTime": 22,
-        "GlobalShadows": true,
-        "Technology": "Future"
-      }
-    },
-    "SoundService": {
-      "$className": "SoundService",
-      "$properties": {
-        "RespectFilteringEnabled": true
+        "FilteringEnabled": true,
+        "Gravity": 196.2
       }
     }
   }

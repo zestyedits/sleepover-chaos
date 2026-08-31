@@ -123,7 +123,8 @@ local BUILDERS: { [string]: (add: Adder) -> BasePart } = {
 			"Shade",
 			Vector3.new(2.2, 1.8, 2.2),
 			CFrame.new(0, 7.2, 0),
-			Color3.fromRGB(255, 244, 214),
+			-- Warm rather than pure white: Neon is fully emissive.
+			Color3.fromRGB(240, 228, 190),
 			Enum.Material.Neon
 		)
 	end,

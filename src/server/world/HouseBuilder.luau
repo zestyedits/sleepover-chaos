@@ -36,6 +36,9 @@ local Props = require(script.Parent.Props)
 local HouseBuilder = {}
 
 local WALL_COLOR = Color3.fromRGB(226, 218, 206)
+-- Warm, slightly off-white. Neon is fully emissive, so this is deliberately not pure white --
+-- and it has to stay Neon so Power Outage's swap to SmoothPlastic still reads as "lights off".
+local CEILING_LIGHT_COLOR = Color3.fromRGB(235, 226, 198)
 local TRIM_COLOR = Color3.fromRGB(158, 130, 104)
 local STAIR_COLOR = Color3.fromRGB(168, 132, 96)
 
@@ -349,16 +352,27 @@ local function buildRoom(room: any, roomsFolder: Instance)
 			level.baseY + level.ceilingHeight - HouseConfig.floorThickness - 0.3,
 			centerZ
 		),
-		Color = Color3.new(1, 0.95, 0.8),
+		Color = CEILING_LIGHT_COLOR,
 		Material = Enum.Material.Neon,
 		CanCollide = false,
 		Tags = { Tags.HouseLight },
 	}, folder)
+	-- The PointLight below lives INSIDE this part. With shadows enabled the host would cast a
+	-- shadow straight down and occlude its own light, leaving the floor directly beneath the
+	-- fixture darker than the rest of the room.
+	lightHost.CastShadow = false
 
+	-- Shadows default to FALSE on a PointLight, which is what actually turned all 16 house
+	-- lights into whole-house lights — they lit straight through walls. With shadows on, walls
+	-- occlude, so range can track the room again. It still needs a floor: the fixture hangs
+	-- ~12.7 studs up, so a range much under 24 never reaches the far floor corners.
+	local width = room.rect[3] - room.rect[1]
+	local depth = room.rect[4] - room.rect[2]
 	local light = Instance.new("PointLight")
-	light.Brightness = 1.6
-	light.Range = math.max(room.rect[3] - room.rect[1], room.rect[4] - room.rect[2])
-	light.Color = Color3.new(1, 0.95, 0.85)
+	light.Brightness = 1.2
+	light.Range = math.clamp(math.max(width, depth) * 0.85, 20, 34)
+	light.Shadows = true
+	light.Color = Color3.fromRGB(255, 244, 224)
 	light.Parent = lightHost
 end
 
@@ -411,9 +425,10 @@ local function buildFurniture(house: Instance)
 		-- just the ceiling fixtures.
 		if item.kind == "Lamp" then
 			CollectionService:AddTag(primary, Tags.HouseLight)
+			primary.CastShadow = false -- same self-shadowing problem as the ceiling fixtures
 			local light = Instance.new("PointLight")
-			light.Brightness = 1.2
-			light.Range = 22
+			light.Brightness = 0.85
+			light.Range = 15
 			light.Color = Color3.fromRGB(255, 236, 200)
 			light.Parent = primary
 		end
