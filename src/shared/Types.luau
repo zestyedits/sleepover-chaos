@@ -61,6 +61,11 @@ export type RunContext = {
 	announce: (message: string, style: string?) -> (),
 	finish: () -> (), -- request an early, successful end (win condition met)
 	abort: () -> (), -- request an early, unsuccessful end
+	broadcastState: (state: { [string]: any }) -> (), -- push live HUD state (meters, counters)
+	-- Roster churn. `players` above is kept live by the framework, but an activity that handed
+	-- out per-player state on start (a tool, a score entry) needs to know about late arrivals.
+	onPlayerJoined: (callback: (Player) -> ()) -> (),
+	onPlayerLeft: (callback: (Player) -> ()) -> (),
 }
 
 export type PhaseName =

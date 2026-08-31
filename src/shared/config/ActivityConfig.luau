@@ -22,7 +22,8 @@ local ActivityConfig = {
 			duration = 60,
 			objective = "Whack everyone with pillows! Most hits wins.",
 			settings = {
-				pointsPerHit = 1,
+				pointsPerHit = 2,
+				pointsPerNpcHit = 1, -- NPC guests are hittable, just worth less than a real player
 				megaChance = 0.15, -- rare MEGA PILLOW FIGHT variant (GDD §6)
 				megaPointMultiplier = 2,
 			},
@@ -47,11 +48,18 @@ local ActivityConfig = {
 			weight = 2,
 			duration = 60,
 			objective = "Sneak the requested snacks back without waking the house.",
+			-- Noise budget: 4 grabs alone reach 88 of 100, so grabbing cannot bust you on its
+			-- own — sprinting is what tips it over. A player at full speed (16) adds
+			-- (16 - 7) * 0.35 = ~3.1/s, so two people running outpace the 5/s decay while
+			-- standing still always recovers. The old numbers capped out at 72 against a
+			-- threshold of 100, which made the fail state literally unreachable.
 			settings = {
 				pointsPerSnack = 2,
 				noiseFailThreshold = 100,
-				noisePerGrab = 18,
-				noiseDecayPerSecond = 6,
+				noisePerGrab = 22,
+				noiseDecayPerSecond = 5,
+				quietSpeed = 7, -- studs/s you can move without making a sound
+				noisePerSpeedUnit = 0.35, -- noise per stud/s over quietSpeed, per second
 			},
 		},
 		{
@@ -60,11 +68,15 @@ local ActivityConfig = {
 			module = "HideAndSeek",
 			weight = 2,
 			duration = 75,
-			objective = "Hide from the seeker. Last one hidden wins!",
+			objective = "Claim a hiding spot and stay put — the seeker is coming.",
 			settings = {
-				seekerHeadStart = 8,
+				seekerHeadStart = 12,
+				hideRadius = 10, -- drift further than this from your spot and you are exposed
+				searchRange = 9, -- seeker's "Search!" reach against a hiding spot
+				tagRange = 7, -- ...and against someone caught in the open
 				pointsForSurviving = 3,
 				pointsPerCatch = 2,
+				pointsForFindingSpot = 1, -- solo scavenger-hunt mode
 			},
 		},
 		{

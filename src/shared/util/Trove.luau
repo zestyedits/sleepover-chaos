@@ -12,16 +12,29 @@
 local Trove = {}
 Trove.__index = Trove
 
-export type Trove = typeof(setmetatable({} :: { _objects: { any } }, Trove))
+export type Trove = typeof(setmetatable({} :: { _objects: { any }, _cleaned: boolean }, Trove))
+
+local cleanupObject -- forward declaration; defined below, used by both Add and Clean.
 
 function Trove.new(): Trove
 	return setmetatable({
 		_objects = {},
+		_cleaned = false,
 	}, Trove)
 end
 
 -- Track an object for later cleanup and return it (so you can inline `local x = trove:Add(...)`).
+--
+-- Adding to an already-cleaned trove disposes the object IMMEDIATELY instead of storing it.
+-- This is deliberate: a run's trove is cleaned exactly once when the run ends, so anything that
+-- arrives afterwards belongs to a run that no longer exists. Without this, a `task.delay` that
+-- fires past the activity timer would happily hand the trove a Tool it never destroys, and that
+-- Tool would follow the player into the next activity (the Hide & Seek "Tag!" bug).
 function Trove:Add<T>(object: T): T
+	if self._cleaned then
+		cleanupObject(object)
+		return object
+	end
 	table.insert(self._objects, object)
 	return object
 end
@@ -42,7 +55,9 @@ function Trove:AddCleanup(callback: () -> ()): () -> ()
 	return self:Add(callback)
 end
 
-local function cleanupObject(object: any)
+-- Assigns the forward-declared local above (Lua resolves the name lexically), so `Add` can
+-- dispose late arrivals with the exact same logic `Clean` uses.
+function cleanupObject(object: any)
 	local objType = typeof(object)
 	if objType == "Instance" then
 		object:Destroy()
@@ -63,6 +78,7 @@ end
 
 -- Clean up everything, most-recent first (reverse order mirrors construction order).
 function Trove:Clean()
+	self._cleaned = true
 	local objects = self._objects
 	for i = #objects, 1, -1 do
 		cleanupObject(objects[i])

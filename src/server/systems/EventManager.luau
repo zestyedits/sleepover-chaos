@@ -4,6 +4,7 @@
 -- GhostStory branch can trigger a specific event elsewhere in the house (GDD §6).
 
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -115,6 +116,17 @@ end
 
 function EventManager.start()
 	loadFactories()
+
+	-- Studio-only force-trigger for the dev panel. triggerById already refuses to stack runs.
+	Remotes.event("DevRunEvent").OnServerEvent:Connect(function(player: Player, eventId: unknown)
+		if not RunService:IsStudio() then
+			warn(`[EventManager] ignoring DevRunEvent from {player.Name}: not a Studio session`)
+			return
+		end
+		if typeof(eventId) == "string" then
+			EventManager.triggerById(eventId)
+		end
+	end)
 end
 
 return EventManager

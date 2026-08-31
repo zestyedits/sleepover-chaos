@@ -10,6 +10,7 @@
 -- ChaosEventBase are thin wrappers that make writing these ergonomic, but Lifecycle only
 -- depends on the shape, not on those classes.
 
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
@@ -60,6 +61,10 @@ local function makeContext(runnable: Runnable, options: RunOptions, trove: any):
 		tags = {},
 	}
 
+	-- Roster-churn subscribers, registered by activities via ctx.onPlayerJoined / onPlayerLeft.
+	local joinedCallbacks: { (Player) -> () } = {}
+	local leftCallbacks: { (Player) -> () } = {}
+
 	local ctx
 	ctx = {
 		id = runnable.id,
@@ -85,7 +90,51 @@ local function makeContext(runnable: Runnable, options: RunOptions, trove: any):
 			ctx._aborted = true
 			ctx._finishRequested = true
 		end,
+		-- Push arbitrary per-activity state to every client's HUD (noise meter, found counter...).
+		-- Activities own the shape of the table; HudController renders what it recognises.
+		broadcastState = function(state: { [string]: any })
+			local ok, remote = pcall(Remotes.event, "ActivityState")
+			if ok and remote then
+				remote:FireAllClients(runnable.id, state)
+			end
+		end,
+		-- Called when someone joins mid-run. Activities use this to hand a late arrival their
+		-- tool; without it a second Studio client that loads after onStart gets nothing.
+		onPlayerJoined = function(callback: (Player) -> ())
+			table.insert(joinedCallbacks, callback)
+		end,
+		onPlayerLeft = function(callback: (Player) -> ())
+			table.insert(leftCallbacks, callback)
+		end,
 	}
+
+	local function fire(callbacks: { (Player) -> () }, player: Player)
+		for _, callback in callbacks do
+			local ok, err = pcall(callback, player)
+			if not ok then
+				warn(`[Lifecycle] roster callback error: {err}`)
+			end
+		end
+	end
+
+	-- Keep ctx.players live for the whole run. Refreshed on the roster signals rather than every
+	-- heartbeat, so the run loop isn't allocating a fresh player table 60 times a second.
+	trove:Connect(Players.PlayerAdded, function(player: Player)
+		ctx.players = Players:GetPlayers()
+		fire(joinedCallbacks, player)
+	end)
+	trove:Connect(Players.PlayerRemoving, function(player: Player)
+		-- PlayerRemoving fires while the player is still in the roster, so drop them by hand.
+		local remaining = {}
+		for _, other in Players:GetPlayers() do
+			if other ~= player then
+				table.insert(remaining, other)
+			end
+		end
+		ctx.players = remaining
+		fire(leftCallbacks, player)
+	end)
+
 	return ctx
 end
 
@@ -110,7 +159,7 @@ function Lifecycle.run(runnable: Runnable, options: RunOptions): any
 	if options.announceCountdown ~= false then
 		local countdown = runnable.countdown or 3
 		broadcastAnnounce(`{runnable.displayName} starting...`, "event")
-		for i = countdown, 1, -1 do
+		for _ = countdown, 1, -1 do
 			task.wait(1)
 		end
 	end

@@ -4,7 +4,6 @@
 -- event elsewhere in the house. The story is driven in a spawned task so the Lifecycle run loop
 -- still bounds it with the activity timer.
 
-local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
@@ -79,8 +78,17 @@ return ActivityBase.extend("GhostStory", {
 			end)
 		ctx.trove:Add(voteConn)
 
-		-- Drive the story in its own thread; the run loop still enforces the duration cap.
-		task.spawn(function()
+		-- The story thread outlives nothing. It is owned by the run trove (which cancels
+		-- threads) AND gated on `active`, because a thread parked in task.wait can still be
+		-- resumed in the window between the run loop stopping and cleanup running. Without
+		-- both, an expired ghost story could fire a real chaos event minutes later, in the
+		-- middle of a completely different activity.
+		local active = true
+		ctx.trove:AddCleanup(function()
+			active = false
+		end)
+
+		ctx.trove:Add(task.spawn(function()
 			local node = STORY.start
 			local safety = 0
 			while node and #node.choices > 0 and safety < 6 do
@@ -94,10 +102,13 @@ return ActivityBase.extend("GhostStory", {
 				Remotes.event("GhostStoryPrompt"):FireAllClients(node.id, node.text, choiceLabels)
 
 				task.wait(VOTE_WINDOW)
+				if not active then
+					return
+				end
 
 				-- Tally votes; reward participation (GDD §6).
 				local tally = {}
-				for _, choice in node.choices do
+				for _ in node.choices do
 					table.insert(tally, 0)
 				end
 				for player, index in votes do
@@ -124,7 +135,11 @@ return ActivityBase.extend("GhostStory", {
 				local chosen = node.choices[bestIndex]
 
 				-- A branch may trigger a real event elsewhere in the house (GDD §6).
-				if chosen.triggers and RandomUtil.chance(settings.chanceToTriggerEvent or 0.4) then
+				if
+					active
+					and chosen.triggers
+					and RandomUtil.chance(settings.chanceToTriggerEvent or 0.4)
+				then
 					ctx.announce("...wait. Did that actually just happen?!", "chaos")
 					EventManager.triggerById(chosen.triggers)
 				end
@@ -133,16 +148,18 @@ return ActivityBase.extend("GhostStory", {
 			end
 
 			-- Final node text, then end the activity.
-			if node and node.text then
+			if active and node and node.text then
 				Remotes.event("GhostStoryPrompt"):FireAllClients(node.id, node.text, {})
 				ctx.announce(node.text, "result")
 			end
 			task.wait(2)
-			ctx.finish()
-		end)
+			if active then
+				ctx.finish()
+			end
+		end))
 	end,
 
-	onCleanup = function(ctx)
+	onCleanup = function(_ctx)
 		NPCManager.setGatherPoint(nil)
 	end,
 })

@@ -17,6 +17,9 @@ local DEFINITIONS: { [string]: string } = {
 	PhaseChanged = "Event", -- (phase: string, timeLeft: number, info: table)
 	ActivityStarted = "Event", -- (displayName: string, objective: string, duration: number)
 	ActivityEnded = "Event", -- (displayName: string, resultSummary: table)
+	ActivityState = "Event", -- (activityId: string, state: table) live per-activity HUD state:
+	-- Midnight Snack's noise meter, Hide & Seek's found counter. One remote instead of one per
+	-- mechanic; HudController renders whichever keys it recognises and ignores the rest.
 	ChaosEvent = "Event", -- (displayName: string, description: string)
 	Announce = "Event", -- (message: string, style: string)
 	DataUpdated = "Event", -- (profileView: table) whole client-safe profile snapshot
@@ -28,8 +31,12 @@ local DEFINITIONS: { [string]: string } = {
 	GhostStoryChoice = "Event", -- (choiceIndex: number)
 	RequestProfile = "Function", -- () -> profileView
 
-	-- Client -> Server debug/dev only (guarded in CosmeticService)
+	-- Client -> Server debug/dev only. Every one of these is re-checked against
+	-- RunService:IsStudio() on the SERVER before it does anything — the client saying "I'm in
+	-- Studio" is not evidence of anything.
 	DevGrantStars = "Event", -- (amount: number) -- Studio only
+	DevRunActivity = "Event", -- (activityId: string) -- Studio only, force-run an activity
+	DevRunEvent = "Event", -- (eventId: string) -- Studio only, force-run a chaos event
 }
 
 local Remotes = {}

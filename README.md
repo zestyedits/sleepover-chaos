@@ -32,11 +32,38 @@ src/
                  · RewardService · NPCManager · InteractionService · CosmeticService
     activities/  PillowFight · ParentCheck · MidnightSnack · HideAndSeek · GhostStory
     chaosevents/ PowerOutage · StrangeNoise · PizzaDisaster
-    world/HouseBuilder.luau          procedural greybox from HouseConfig
+    world/       HouseBuilder (structure) · Props (furniture kit)
   client/
-    init.client.luau + controllers/  Hud · Notifications · Scrapbook · CosmeticMenu · GhostStory
+    init.client.luau + controllers/  Hud · Notifications · Scrapbook · CosmeticMenu
+                                     · GhostStory · DevPanel (Studio only)
 tests/           TestEZ specs for pure logic
 ```
+
+## The house
+
+One compact two-story house, built procedurally by `HouseBuilder` from `HouseConfig`:
+
+```
+GROUND  y=0                    UPPER  y=+14              ATTIC y=+26
++-----------+-----------+      +-----------+-----------+  +---------+
+| Living    | Kitchen   |      | Bedroom   | GuestRoom |  | Attic   |
+| sofa TV   | counters  |      | beds      | bed       |  | boxes   |
+| curtains  | pantry    |      | under-bed |           |  +---------+
++--- Hallway spine -----+      +--- Landing spine -----+   hatch +
+| Den       | STAIRS UP |      | Bathroom  | stairwell |   ladder
+| closet    |           |      | bathtub   | + railing |
++-----------+-----------+      +-----------+-----------+
+     front door / porch                back yard
+```
+
+Two things about `HouseConfig` are worth knowing before editing it:
+
+- **Rooms do not imply walls.** Walls are their own list, authored with explicit `openings`. A
+  room rectangle cannot express a doorway, which is why the earlier single-floor version had to
+  use half-height walls and gaps between disconnected rectangles.
+- **Gameplay roles ride on furniture.** A hiding spot is a `hides = "In the pantry"` field on an
+  actual pantry prop; snack sources and bed zones work the same way. There is no separate list of
+  floating trigger cubes to keep in sync with the props.
 
 ## The event framework (start here)
 
@@ -75,9 +102,14 @@ into obbies (GDD §17).
 3. Press **Play**. You'll spawn in the living room; NPC guests fill the party; the round loop
    cycles Arrive → Activity → Free Time → Random Event → Activity → Late-Night Chaos → Morning.
 
+In Studio a **dev panel** appears on the left with buttons to force-run a specific activity or
+chaos event. Waiting for weighted-random to pick the one you want costs minutes per attempt, so
+use the panel when iterating. It is hidden outside Studio, and both `DevRunActivity` and
+`DevRunEvent` are re-checked against `RunService:IsStudio()` on the server.
+
 ## Verification
 
-Headless checks (no Studio needed):
+Headless checks (no Studio needed) — all three must be clean:
 
 ```sh
 rojo build default.project.json -o build.rbxlx   # whole tree resolves & builds
@@ -85,13 +117,20 @@ stylua --check src tests                          # formatting
 selene src tests                                  # lint / undefined globals
 ```
 
+`.gitattributes` pins `eol=lf` because `stylua.toml` sets `line_endings = "Unix"`; without it a
+Windows checkout under `core.autocrlf=true` fails the format check on every file. `testez.yml`
+is a selene std shim so the TestEZ globals in `tests/` are not reported as undefined.
+
 Logic tests (TestEZ, run in Studio): add [TestEZ](https://github.com/Roblox/testez) to a
 `Packages` folder and point a runner at `tests/`. The specs cover the progression math
-(`RankConfig`), the no-immediate-repeat selection (`RandomUtil`), and config integrity.
+(`RankConfig`), the no-immediate-repeat selection (`RandomUtil`), config integrity, and the house
+geometry (`HouseConfig.spec` — non-overlapping rooms, doorways inside their wall runs, props
+inside their rooms, stairs landing flush on a floor, the hatch covering the attic opening).
 
-Manual smoke test (the GDD §18 success test): press Play solo and confirm the greybox house
-appears, NPCs spawn, the round loop advances, Pillow Fight and Parent Check are playable, a
-chaos event fires, and stars/scrapbook update in the HUD.
+Manual smoke test (the GDD §18 success test): press Play solo and confirm the house appears,
+NPCs spawn and stay on the floor, the round loop advances, Pillow Fight and Parent Check are
+playable, a chaos event fires, and stars/scrapbook update in the HUD. Walk ground → upstairs →
+attic: the hatch stays sealed until Strange Noise fires.
 
 ## Monetization note
 

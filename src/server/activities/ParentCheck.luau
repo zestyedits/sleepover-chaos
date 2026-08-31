@@ -3,7 +3,6 @@
 -- and get in bed, then pretend to sleep. Mechanically tiny, socially loud. A perfect check
 -- (all contraband hidden + everyone in bed) is a rare scrapbook memory.
 
-local Players = game:GetService("Players")
 local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -12,6 +11,7 @@ local ActivityBase = require(Shared.framework.ActivityBase)
 local Tags = require(Shared.Tags)
 
 local InteractionService = require(script.Parent.Parent.systems.InteractionService)
+local NPCManager = require(script.Parent.Parent.systems.NPCManager)
 local HouseBuilder = require(script.Parent.Parent.world.HouseBuilder)
 
 local CONTRABAND_NAMES = { "Phone", "Candy Stash", "Prank Kit", "Walkie-Talkie", "Flashlight" }
@@ -60,6 +60,10 @@ end
 return ActivityBase.extend("ParentCheck", {
 	onStart = function(ctx)
 		ctx.announce("MOM IS COMING! Hide everything and GET IN BED!", "chaos")
+
+		-- The guests panic-dive for the beds too, which is most of what sells the bit.
+		NPCManager.setBehavior("Bed")
+		NPCManager.react("hide it hide it hide it")
 
 		local contraband = spawnContraband(ctx)
 		ctx.result.tags.totalContraband = #contraband
@@ -113,5 +117,9 @@ return ActivityBase.extend("ParentCheck", {
 		else
 			ctx.announce("...Mom's suspicious. Better luck next time.", "result")
 		end
+	end,
+
+	onCleanup = function(_ctx)
+		NPCManager.setBehavior("Idle")
 	end,
 })

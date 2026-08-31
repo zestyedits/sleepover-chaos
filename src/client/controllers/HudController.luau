@@ -17,6 +17,13 @@ local objectiveLabel: TextLabel
 local starsLabel: TextLabel
 local rankLabel: TextLabel
 
+-- Live activity state (Midnight Snack's noise meter, Hide & Seek's found counter). Both of these
+-- mechanics were previously invisible to the player, which is most of why neither read as fun:
+-- a fail meter you cannot see is not tension, it is a surprise.
+local statePanel: Frame
+local stateLabel: TextLabel
+local stateBar: Frame
+
 local countdownValue = 0
 
 local function build(parent: ScreenGui)
@@ -56,6 +63,46 @@ local function build(parent: ScreenGui)
 		Text = "",
 	}) :: TextLabel
 
+	-- Activity state strip, directly under the phase pill.
+	statePanel = UIUtil.make("Frame", {
+		Name = "ActivityState",
+		Parent = parent,
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, 74),
+		Size = UDim2.new(0, 320, 0, 40),
+		BackgroundColor3 = palette.panel,
+		BackgroundTransparency = 0.15,
+		Visible = false,
+	}, { UIUtil.corner(10), UIUtil.padding(8) }) :: Frame
+
+	stateLabel = UIUtil.make("TextLabel", {
+		Name = "StateLabel",
+		Parent = statePanel,
+		Size = UDim2.new(1, 0, 0, 14),
+		BackgroundTransparency = 1,
+		Font = Enum.Font.GothamMedium,
+		TextScaled = true,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextColor3 = palette.subtext,
+		Text = "",
+	}) :: TextLabel
+
+	local barTrack = UIUtil.make("Frame", {
+		Name = "BarTrack",
+		Parent = statePanel,
+		Position = UDim2.new(0, 0, 0, 18),
+		Size = UDim2.new(1, 0, 0, 8),
+		BackgroundColor3 = palette.bg,
+	}, { UIUtil.corner(4) }) :: Frame
+
+	stateBar = UIUtil.make("Frame", {
+		Name = "Bar",
+		Parent = barTrack,
+		Size = UDim2.fromScale(0, 1),
+		BackgroundColor3 = palette.good,
+		BorderSizePixel = 0,
+	}, { UIUtil.corner(4) }) :: Frame
+
 	-- Top-right progression card.
 	local card = UIUtil.make("Frame", {
 		Name = "ProgressCard",
@@ -93,6 +140,35 @@ local function build(parent: ScreenGui)
 	}) :: TextLabel
 end
 
+-- Render whatever the running activity chose to publish. Unknown keys are ignored, so a new
+-- activity can start broadcasting without a client change.
+local function applyActivityState(state: { [string]: any }?)
+	if not state then
+		statePanel.Visible = false
+		return
+	end
+
+	local fraction = 0
+	local text = state.label or ""
+
+	if state.meter and state.meterMax and state.meterMax > 0 then
+		fraction = math.clamp(state.meter / state.meterMax, 0, 1)
+		text = `{text}  {math.floor(state.meter + 0.5)}/{math.floor(state.meterMax)}`
+		-- Green through amber to red as the meter fills: the colour IS the warning.
+		stateBar.BackgroundColor3 = UIUtil.palette.good
+			:Lerp(UIUtil.palette.warn, math.min(fraction * 2, 1))
+			:Lerp(UIUtil.palette.chaos, math.max((fraction - 0.5) * 2, 0))
+	elseif state.total and state.total > 0 then
+		fraction = math.clamp((state.found or 0) / state.total, 0, 1)
+		text = `{text}  {state.found or 0}/{state.total}`
+		stateBar.BackgroundColor3 = UIUtil.palette.accent
+	end
+
+	stateLabel.Text = text
+	stateBar.Size = UDim2.fromScale(fraction, 1)
+	statePanel.Visible = true
+end
+
 local function setPhaseText()
 	if countdownValue > 0 then
 		phaseLabel.Text = `{phaseLabel:GetAttribute("Base") or "Sleepover"}  ({countdownValue}s)`
@@ -114,8 +190,13 @@ function HudController.start(parent: ScreenGui)
 		phaseLabel:SetAttribute("Base", pretty)
 		phaseLabel.Text = pretty
 		objectiveLabel.Text = ""
+		applyActivityState(nil)
 		countdownValue = math.floor(duration)
 		setPhaseText()
+	end)
+
+	Remotes.event("ActivityState").OnClientEvent:Connect(function(_activityId: string, state)
+		applyActivityState(state)
 	end)
 
 	Remotes.event("ActivityStarted").OnClientEvent
@@ -124,6 +205,7 @@ function HudController.start(parent: ScreenGui)
 		end)
 
 	Remotes.event("ActivityEnded").OnClientEvent:Connect(function(displayName: string, summary)
+		applyActivityState(nil)
 		if summary and summary.topName then
 			objectiveLabel.Text = `Winner: {summary.topName} ({summary.topScore})`
 		end

@@ -16,6 +16,7 @@ local Remotes = require(Shared.net.Remotes)
 local ActivityManager = require(script.Parent.ActivityManager)
 local EventManager = require(script.Parent.EventManager)
 local RewardService = require(script.Parent.RewardService)
+local HouseBuilder = require(script.Parent.Parent.world.HouseBuilder)
 
 local GameRoundManager = {}
 
@@ -71,6 +72,10 @@ end
 -- The main loop. One iteration = one full sleepover, then it repeats (GDD §3 "play another").
 local function sessionLoop()
 	while true do
+		-- Reseal the attic so each sleepover has its own secret to find. StrangeNoise leaves it
+		-- open for the rest of the night on purpose; this is where that resets.
+		HouseBuilder.setAtticOpen(false)
+
 		for _, phase in GameConfig.phases do
 			runPhase(phase)
 		end

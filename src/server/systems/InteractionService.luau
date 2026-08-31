@@ -45,6 +45,12 @@ local function ensurePrompt(part: BasePart)
 			handler(player, part)
 		end
 	end)
+
+	-- The map is keyed by the part, so without this every house rebuild pins the entire previous
+	-- set of props in memory and refreshPromptStates walks them forever.
+	part.Destroying:Connect(function()
+		prompts[part] = nil
+	end)
 end
 
 -- Update prompt enabled-state to match currently-registered roles.

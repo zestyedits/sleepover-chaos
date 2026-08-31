@@ -15,6 +15,7 @@ local NotificationsController = require(controllers.NotificationsController)
 local ScrapbookController = require(controllers.ScrapbookController)
 local CosmeticMenuController = require(controllers.CosmeticMenuController)
 local GhostStoryController = require(controllers.GhostStoryController)
+local DevPanelController = require(controllers.DevPanelController)
 
 Remotes.init()
 
@@ -34,6 +35,7 @@ NotificationsController.start(screen)
 ScrapbookController.start(screen)
 CosmeticMenuController.start(screen)
 GhostStoryController.start(screen)
+DevPanelController.start(screen) -- no-ops outside Studio
 
 -- Bottom-left toolbar with panel toggles.
 local toolbar = UIUtil.make("Frame", {

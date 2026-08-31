@@ -19,6 +19,12 @@ local Tags = {
 	SnackSource = "SC_SnackSource", -- MidnightSnack
 	Contraband = "SC_Contraband", -- ParentCheck hideable items
 	Door = "SC_Door", -- PizzaDisaster spawn, attic door
+	AtticHatch = "SC_AtticHatch", -- the sealing panel StrangeNoise opens
+	AtticLadder = "SC_AtticLadder", -- climbable truss revealed with the hatch
+
+	-- Furniture / set dressing. Tagged so a future art pass can swap the greybox props out
+	-- without touching gameplay code.
+	Furniture = "SC_Furniture",
 
 	-- Light sources toggled by PowerOutage
 	HouseLight = "SC_HouseLight",
