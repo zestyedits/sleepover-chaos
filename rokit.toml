@@ -2,6 +2,6 @@
 # Run `rokit install` to fetch pinned versions of the dev tooling.
 
 [tools]
-rojo = "rojo-rbx/rojo@7.4.4"
+rojo = "rojo-rbx/rojo@7.7.0"
 stylua = "JohnnyMorganz/StyLua@0.20.0"
 selene = "Kampfkarren/selene@0.27.1"
