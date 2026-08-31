@@ -194,7 +194,65 @@ the actual lighting the game ships with.
 
 Avoid: chrome, neon, anything photoreal-grey. Cold white PBR kitchens read as an office at night.
 
-## 9. Open blockers
+## 9. Unapproved: `ServerStorage.Furniture`
+
+**Status: NOT APPROVED. Reference only. Do not place, do not promote, do not delete.**
+
+A 133-part model named "Furnitore" sitting in the place file. It is being used as a *survey* of
+what a furniture pack contains, nothing more, until it is explicitly approved or replaced.
+
+**Provenance — traced, not assumed.** The container has no attribution. Its asset references do.
+Sampling ten of the 133 mesh and texture IDs through `MarketplaceService:GetProductInfo` returned
+**eight different uploaders**:
+
+| Uploader | Uploaded | Note |
+| --- | --- | --- |
+| `tinsewn` | 2022-06 | the dominant block, sequential IDs 9834xxxxx / 9841xxxxx |
+| `Katsuteri` | 2022-03 | |
+| `MUCDICH` | 2022-05 | |
+| `Hifiveghostie5` | 2022-01 | |
+| `Officerbruh0987` | 2021-09 | |
+| `Mesh_Stock` | 2019-03 | |
+| `iluvmodelripper5` | 2022-04 | handle self-describes as ripping models |
+| `THEQuixel` | 2022-02 | "Quixel"/Megascans is an Epic Games library brand |
+
+Sequential ID runs from one uploader mean a batch upload; **eight separate blocks mean this is a
+compilation, not a single-author pack**, so there is no single licence to record and per-§3 no row
+can honestly be filled in for it. The last two handles are the reason this matters rather than
+being pedantry.
+
+The model also carries non-standard attributes `_ts=1778267691`, `_uid=CEY5-QPTj-dpia-xVCn`,
+`_cs=29486` — a third-party plugin's watermark, not anything Roblox writes.
+
+**Coverage, if it were approved.** Measured against the kit in §7, it fills roughly **4 of 21 P0
+slots**: a 15x13 rug, sofas, cardboard boxes, a bookshelf. Two near-misses: its wardrobe is 6x9x**2**
+(needs 3+ deep for the §6 cavity) and its TVs are 3 studs wide against a 14-stud target.
+
+Resolution, when you decide: either save it to `furniture-source/` and promote individual vetted
+pieces, or replace it with a pack that has one known author.
+
+## 10. Shopping list
+
+The short, deliberate list — only things the house will not give us as usable gameplay props.
+**Not another full pack, no characters, no hundred tiny decorations.**
+
+| # | Want | Fills |
+| --- | --- | --- |
+| 1 | Tall pantry / cabinet, hideable | §6 cavity, "In the pantry" |
+| 2 | Curtain set + shower curtain | two distinct hiding verbs |
+| 3 | Large laundry hamper | "In the laundry basket" |
+| 4 | Sleeping bags, oversized pillows, blanket pile | bed zones + the core sleepover read |
+| 5 | 2-3 beanbags / floor cushions | social space seating |
+| 6 | Snack set: chip bowl/bags, cookies, popcorn, soda | all four `SC_SnackSource` |
+| 7 | Floor lamp + fairy/string lights | `SC_HouseLight`, warm key + fill |
+| 8 | Vanity + mirror/stool, wardrobe / clothing rack | bedroom, plus a second hideable |
+| 9 | Attic set: wooden hatch, ladder, boxes, trunk, single lamp | unblocks Strange Noise |
+| 10 | Signature cozy props: plushies, rugs, posters / polaroid wall | vibe, low part count |
+
+Sofas, kitchen units and bedroom furniture are **not** on this list — the house already has a
+fitted kitchen with island and ovens, and existing props cover seating.
+
+## 11. Open blockers
 
 - **No attic in any candidate house.** Geo Homes has 12-stud storeys at y=+6 and +18 and a solid roof
   above — measured 0 st² of enclosed volume at roof level. Strange Noise needs an attic built, or a
@@ -203,6 +261,5 @@ Avoid: chrome, neon, anything photoreal-grey. Cold white PBR kitchens read as an
   "Two Story Colored" has *zero* meaningfully-named descendants. `MapConfig`'s
   `path = "Interior/Bedroom/Bed_01"` scheme cannot address anything inside them, so annotation needs
   to move to positions or in-place tags.
-- **A raw furniture pack is currently sitting in the place file** at `ServerStorage.Furniture`
-  ("Furnitore", 133 parts). Per this manifest it belongs in `furniture-source/` as a file, with only
-  the curated pieces promoted.
+- **`ServerStorage.Furniture` is unapproved and untouched** — see §9. Reference only until you
+  say otherwise.
