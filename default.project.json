@@ -7,21 +7,41 @@
       "Atmosphere": {
         "$className": "Atmosphere",
         "$properties": {
-          "Density": 0.2,
+          "Density": 0.32,
+          "Offset": 0.1,
+          "Haze": 1.2,
           "Glare": 0.0,
-          "Haze": 0.0
+          "Color": [0.306, 0.259, 0.235],
+          "Decay": [0.204, 0.165, 0.157]
+        }
+      },
+      "ColorCorrection": {
+        "$className": "ColorCorrectionEffect",
+        "$properties": {
+          "Enabled": true,
+          "Brightness": 0.035,
+          "Contrast": 0.06,
+          "Saturation": 0.06,
+          "TintColor": [1.0, 0.925, 0.839]
         }
       },
       "Bloom": {
         "$className": "BloomEffect",
         "$properties": {
-          "Enabled": false
+          "Enabled": true,
+          "Intensity": 0.4,
+          "Size": 20,
+          "Threshold": 0.95
         }
       },
       "DepthOfField": {
         "$className": "DepthOfFieldEffect",
         "$properties": {
-          "Enabled": false
+          "Enabled": true,
+          "FarIntensity": 0.12,
+          "NearIntensity": 0.0,
+          "FocusDistance": 30.0,
+          "InFocusRadius": 40.0
         }
       },
       "SunRays": {
@@ -31,20 +51,12 @@
         }
       },
       "$properties": {
-        "Ambient": [
-          0.05,
-          0.05,
-          0.09
-        ],
-        "OutdoorAmbient": [
-          0.04,
-          0.05,
-          0.09
-        ],
-        "EnvironmentDiffuseScale": 0.25,
-        "EnvironmentSpecularScale": 0.25,
-        "Brightness": 0.4,
-        "ClockTime": 22.0,
+        "Ambient": [0.118, 0.094, 0.102],
+        "OutdoorAmbient": [0.102, 0.094, 0.141],
+        "EnvironmentDiffuseScale": 0.22,
+        "EnvironmentSpecularScale": 0.18,
+        "Brightness": 0.35,
+        "ClockTime": 23.0,
         "GlobalShadows": true,
         "Technology": "Future"
       }
