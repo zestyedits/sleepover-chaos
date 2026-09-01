@@ -106,22 +106,32 @@ Ordered by what breaks without it. **P0 is navigation, hiding, snacks, the attic
 spaces.** Decoration density is deliberately not addressed yet — an under-furnished house that plays
 correctly beats a dressed set that jams pathfinding.
 
-Status: `TODO` needed, no candidate · `SOURCED` candidate found, not vetted · `APPROVED` in
-`approved-imports/`, row complete.
+Status: `GREYBOX` a placeholder from `Props.luau` is placed and working · `TODO` needed, no
+candidate · `SOURCED` candidate found, not vetted · `APPROVED` in `approved-imports/`, row complete.
+
+**`GREYBOX` means the slot is already wired and playable.** `HouseLoader` falls back to the
+procedural kit when a name is not in `ServerStorage.FurnitureModels`, so every slot below marked
+GREYBOX has a working prop in the house right now, carrying its real gameplay tag. Dropping a file
+of the **same name** into `approved-imports/furniture/` swaps it — no config change, no
+re-measuring. The measured size of the placeholder is given so you know what an import has to
+match.
 
 ### P0 — hiding (Hide & Seek, Parent Check)
 
-Five distinct verbs. This is the single highest-value group: Hide & Seek is currently played against
-greybox cubes.
+Five distinct verbs — under, in, in, behind, in. Five wardrobes in five rooms is one hiding spot
+repeated, which is why the list is written as verbs rather than objects.
+
+All five are **placed and working** on greybox props, so Hide & Seek is playable now. An import
+here is an upgrade, not an unblock.
 
 | Slot | Room | Scale W×H×D | Collision | Tag / role | Status | Source · Licence |
 | --- | --- | --- | --- | --- | --- | --- |
-| Wardrobe / closet | Bedroom | 8 × 11 × 4 | `Shell` | `SC_HidingSpot` "In the closet" | TODO | |
-| Bed with under-gap | Bedroom | 7 × 3 × 14 | `Shell` | `SC_HidingSpot` "Under the bed" + `SC_BedZone` | TODO | |
-| Pantry / tall cupboard | Kitchen | 7 × 12 × 4 | `Shell` | `SC_HidingSpot` "In the pantry" | TODO | |
-| Curtains | Living room | 8 × 11 × 0.5 | `Shell` | `SC_HidingSpot` "Behind the curtains" | TODO | |
+| Wardrobe / closet | Bedroom | 8 × 11 × 4 | `Shell` | `SC_HidingSpot` "In the closet" | **GREYBOX** `Closet` 4×9×5.4 | |
+| Bed with under-gap | Bedroom | 7 × 3 × 14 | `Shell` | `SC_HidingSpot` "Under the bed" + `SC_BedZone` | **GREYBOX** `Bed` 7.2×5×4 | |
+| Pantry / tall cupboard | Kitchen | 7 × 12 × 4 | `Shell` | `SC_HidingSpot` "In the pantry" | **GREYBOX** `Pantry` 4×9×4.4 | |
+| Curtains | Living room | 8 × 11 × 0.5 | `Shell` | `SC_HidingSpot` "Behind the curtains" | **GREYBOX** `Curtains` 9×9.5×4 | |
 | Laundry basket / hamper | Bathroom | 4 × 4 × 4 | `Shell` | `SC_HidingSpot` "In the laundry basket" | TODO | |
-| Shower curtain + tub | Bathroom | 6 × 8 × 12 | `Shell` | `SC_HidingSpot` "Behind the shower curtain" | TODO | |
+| Bathtub (+ shower curtain) | Bathroom | 6 × 8 × 12 | `Shell` | `SC_HidingSpot` "In the bathtub" | **GREYBOX** `Bathtub` 7×5×4 | |
 
 ### P0 — snack interaction (Midnight Snack)
 
@@ -129,11 +139,11 @@ Needs four reachable sources on a kitchen counter run, at ~3 studs so the prompt
 
 | Slot | Room | Scale W×H×D | Collision | Tag / role | Status | Source · Licence |
 | --- | --- | --- | --- | --- | --- | --- |
-| Counter run | Kitchen | 12 × 4 × 3 | `Solid` | surface for snacks | TODO | |
-| Fridge | Kitchen | 5 × 10 × 4 | `Solid` | `SC_SnackSource` "Soda" | TODO | |
-| Snack bowl (chips) | Kitchen | 3 × 1.5 × 3 | `Pass-through` | `SC_SnackSource` "Chips" | TODO | |
-| Cookie jar | Kitchen | 2 × 3 × 2 | `Pass-through` | `SC_SnackSource` "Cookies" | TODO | |
-| Popcorn bowl | Kitchen | 3 × 2 × 3 | `Pass-through` | `SC_SnackSource` "Popcorn" | TODO | |
+| Counter run | Kitchen | 12 × 4 × 3 | `Solid` | surface for snacks | **not needed** — house has fitted counters | |
+| Fridge | Kitchen | 5 × 10 × 4 | `Solid` | `SC_SnackSource` "Soda" | **GREYBOX** bowl on counter | |
+| Snack bowl (chips) | Kitchen | 3 × 1.5 × 3 | `Pass-through` | `SC_SnackSource` "Chips" | **GREYBOX** `SnackBowl` 2.2³ | |
+| Cookie jar | Kitchen | 2 × 3 × 2 | `Pass-through` | `SC_SnackSource` "Cookies" | **GREYBOX** `SnackBowl` | |
+| Popcorn bowl | Kitchen | 3 × 2 × 3 | `Pass-through` | `SC_SnackSource` "Popcorn" | **GREYBOX** `SnackBowl` | |
 
 ### P0 — social spaces (Pillow Fight, Ghost Story, Movie)
 
@@ -142,12 +152,12 @@ players "the game happens here".
 
 | Slot | Room | Scale W×H×D | Collision | Tag / role | Status | Source · Licence |
 | --- | --- | --- | --- | --- | --- | --- |
-| Large round rug | Living room | 15 × 0.1 × 15 | `Walkable` | `SC_ActivityAnchor` PillowFight + GhostStory | TODO | |
-| Sofa | Living room | 13 × 5 × 6 | `Solid` | seating | TODO | |
+| Large rug | Living room | 15 × 0.1 × 15 | `Walkable` | `SC_ActivityAnchor` PillowFight + GhostStory | **GREYBOX** `Rug` 12×8 | |
+| Sofa | Living room | 13 × 5 × 6 | `Solid` | seating | **GREYBOX** `Sofa` 8×3.2×3.8 | |
 | Beanbags ×3 | Living room | 5 × 3 × 5 | `Solid` | seating, scatter-friendly | TODO | |
-| TV or projector screen | Living room | 14 × 9 × 0.5 | `Solid` | `SC_HouseLight` (Power Outage kills it) | TODO | |
+| TV or projector screen | Living room | 14 × 9 × 0.5 | `Solid` | `SC_HouseLight` | **GREYBOX** `TV` 7×6.2×1.8 | |
 | Sleeping bags ×4 | Living room | 4 × 1 × 9 | `Walkable` | `SC_BedZone` for the floor sleepers | TODO | |
-| Floor lamp | Living room | 2 × 9 × 2 | `Solid` | `SC_HouseLight` — warm key light | TODO | |
+| Floor lamp | Living room | 2 × 9 × 2 | `Solid` | `SC_HouseLight` — warm key light | **GREYBOX** `Lamp` 2.2×8.1 | |
 
 ### P0 — attic (Strange Noise)
 
@@ -256,7 +266,9 @@ fitted kitchen with island and ovens, and existing props cover seating.
 
 - **No attic in any candidate house.** Geo Homes has 12-stud storeys at y=+6 and +18 and a solid roof
   above — measured 0 st² of enclosed volume at roof level. Strange Noise needs an attic built, or a
-  different secret area (basement, garage loft, treehouse) chosen instead.
+  different secret area chosen instead. Three options, all viable: build into the roof, use the
+  624 st² garage as a loft, or dig a basement. **This is the one thing still blocking a whole
+  activity**, and everything else on the P0 list is now unblocked.
 - **Toolbox models have no usable names.** All four candidates are flat part soups —
   "Two Story Colored" has *zero* meaningfully-named descendants. `MapConfig`'s
   `path = "Interior/Bedroom/Bed_01"` scheme cannot address anything inside them, so annotation needs
