@@ -15,8 +15,11 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Participant = require(Shared.Participant)
 local Trove = require(Shared.util.Trove)
 local Remotes = require(Shared.net.Remotes)
+
+type Participant = Participant.Participant
 
 local Lifecycle = {}
 
@@ -36,6 +39,8 @@ export type Runnable = {
 
 export type RunOptions = {
 	players: { Player },
+	-- Bots taking part in this run. Optional: a run with none behaves exactly as before.
+	bots: { Participant }?,
 	house: Instance,
 	announceCountdown: boolean?,
 	-- Called with (runnable, ctx.result) after onFinish, before cleanup, so a manager can
@@ -56,6 +61,10 @@ local function makeContext(runnable: Runnable, options: RunOptions, trove: any):
 		completed = false,
 		winners = {},
 		scores = {},
+		-- Participant id -> display name. Without this a results screen has to turn ids back
+		-- into Players, which works for humans and yields nil for every bot -- the winner line
+		-- would read "Winner: nil" the first time a bot topped the board.
+		names = {},
 		starAwards = {},
 		scrapbook = {},
 		tags = {},
@@ -65,20 +74,35 @@ local function makeContext(runnable: Runnable, options: RunOptions, trove: any):
 	local joinedCallbacks: { (Player) -> () } = {}
 	local leftCallbacks: { (Player) -> () } = {}
 
+	-- Bots are fixed for the run; humans churn. Rebuilt on join/leave so `participants` always
+	-- means "everyone competing right now".
+	local bots: { Participant } = options.bots or {}
+
 	local ctx
 	ctx = {
 		id = runnable.id,
 		displayName = runnable.displayName,
+		-- `players` deliberately still means HUMANS ONLY. Every existing win condition, count
+		-- and solo check reads it, and silently changing what it means would rewrite the rules
+		-- of five activities at once. Bot-aware code opts in by reading `participants`.
 		players = options.players,
+		participants = {},
 		house = options.house,
 		trove = trove,
 		result = result,
 		config = runnable.config or {},
 		_finishRequested = false,
 		_aborted = false,
-		addScore = function(player: Player, amount: number)
-			local uid = player.UserId
-			result.scores[uid] = (result.scores[uid] or 0) + amount
+		-- Accepts a Player or a Participant. Bots carry negative ids, which is what keeps them
+		-- out of the reward payout downstream without a single explicit isBot check.
+		addScore = function(subject: any, amount: number)
+			local participant = Participant.resolve(subject)
+			if not participant then
+				warn(`[Lifecycle] {runnable.id}: addScore called with a {typeof(subject)}`)
+				return
+			end
+			result.scores[participant.id] = (result.scores[participant.id] or 0) + amount
+			result.names[participant.id] = participant.name
 		end,
 		announce = function(message: string, style: string?)
 			broadcastAnnounce(message, style)
@@ -117,10 +141,29 @@ local function makeContext(runnable: Runnable, options: RunOptions, trove: any):
 		end
 	end
 
+	-- `participants` = humans + bots, rebuilt whenever the human roster changes. A bot whose
+	-- model has been despawned mid-run is dropped here rather than lingering as a ghost entry
+	-- that can still "win".
+	local function rebuildParticipants()
+		local combined: { Participant } = {}
+		for _, player in ctx.players do
+			table.insert(combined, Participant.fromPlayer(player))
+		end
+		for _, bot in bots do
+			local model = bot.model
+			if model and model.Parent then
+				table.insert(combined, bot)
+			end
+		end
+		ctx.participants = combined
+	end
+	rebuildParticipants()
+
 	-- Keep ctx.players live for the whole run. Refreshed on the roster signals rather than every
 	-- heartbeat, so the run loop isn't allocating a fresh player table 60 times a second.
 	trove:Connect(Players.PlayerAdded, function(player: Player)
 		ctx.players = Players:GetPlayers()
+		rebuildParticipants()
 		fire(joinedCallbacks, player)
 	end)
 	trove:Connect(Players.PlayerRemoving, function(player: Player)
@@ -132,8 +175,21 @@ local function makeContext(runnable: Runnable, options: RunOptions, trove: any):
 			end
 		end
 		ctx.players = remaining
+		rebuildParticipants()
 		fire(leftCallbacks, player)
 	end)
+
+	-- Activities that care about bots ask for them explicitly rather than filtering
+	-- `participants` by hand at every call site.
+	ctx.bots = function(): { Participant }
+		local live: { Participant } = {}
+		for _, participant in ctx.participants do
+			if participant.isBot then
+				table.insert(live, participant)
+			end
+		end
+		return live
+	end
 
 	return ctx
 end

@@ -117,11 +117,19 @@ function ActivityManager.runOne(def: any?): any?
 		NPCManager.setGatherPoint(anchor.Position)
 	end
 
+	-- Top the party up, then hold it steady for the run. Guests are scoring competitors now, so
+	-- a mid-activity cull would delete someone from the house while their score lived on in the
+	-- result.
+	NPCManager.ensureParty()
+	NPCManager.freeze(true)
+
 	-- Tell clients an activity is starting (HUD objective).
 	Remotes.event("ActivityStarted"):FireAllClients(def.displayName, def.objective, def.duration)
 
 	local result = Lifecycle.run(runnable, {
 		players = Players:GetPlayers(),
+		-- Guests join the run as real competitors, so a solo player has someone to lose to.
+		bots = NPCManager.getParticipants(),
 		house = house,
 		announceCountdown = true,
 		onResults = function(runnableRef, runResult)
@@ -130,12 +138,13 @@ function ActivityManager.runOne(def: any?): any?
 	})
 
 	-- Summarize for the client (winners + top score).
+	-- Read the name off the result rather than resolving the id: bots have no Player to resolve
+	-- to, and a bot can win.
 	local topScore, topName = 0, nil
-	for uid, score in result.scores do
+	for id, score in result.scores do
 		if score > topScore then
 			topScore = score
-			local player = Players:GetPlayerByUserId(uid)
-			topName = player and player.Name or nil
+			topName = result.names and result.names[id] or nil
 		end
 	end
 	Remotes.event("ActivityEnded"):FireAllClients(def.displayName, {
@@ -144,6 +153,8 @@ function ActivityManager.runOne(def: any?): any?
 	})
 
 	NPCManager.setGatherPoint(nil)
+	NPCManager.clearAllGuestBehaviors()
+	NPCManager.freeze(false)
 	running = false
 	return result
 end

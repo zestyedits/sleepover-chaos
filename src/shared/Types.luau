@@ -38,9 +38,12 @@ export type Profile = {
 -- activities never grant rewards directly.
 export type RunResult = {
 	completed: boolean, -- true = ran to a natural conclusion, false = aborted
-	winners: { Player }, -- players to spotlight / award win-based scrapbook memories
-	scores: { [number]: number }, -- Player.UserId -> score this run
-	starAwards: { [number]: number }, -- Player.UserId -> flat star bonus (optional per-run)
+	winners: { any }, -- Participants to spotlight / award win-based scrapbook memories
+	-- Participant id -> score. Humans key by Player.UserId (always positive); bots key by a
+	-- negative synthetic id, which is why RewardService's GetPlayerByUserId lookup skips them.
+	scores: { [number]: number },
+	names: { [number]: string }, -- participant id -> display name, for results without lookups
+	starAwards: { [number]: number }, -- participant id -> flat star bonus (optional per-run)
 	scrapbook: { string }, -- achievement ids every participant should be checked against
 	winnerScrapbook: { string }?, -- achievement ids granted only to winners
 	winnerStats: { [string]: number }?, -- stat increments applied only to winners
@@ -51,13 +54,15 @@ export type RunResult = {
 export type RunContext = {
 	id: string,
 	displayName: string,
-	players: { Player },
+	players: { Player }, -- HUMANS ONLY -- see the note in Lifecycle.makeContext
+	participants: { any }, -- humans + bots; what "everyone competing" means
 	house: Instance,
 	trove: any, -- Trove for this run; cleaned automatically on finish
 	result: RunResult,
 	config: { [string]: any },
 	-- Helpers injected by the framework:
-	addScore: (player: Player, amount: number) -> (),
+	addScore: (subject: any, amount: number) -> (), -- accepts a Player or a Participant
+	bots: () -> { any }, -- the bot participants currently in this run
 	announce: (message: string, style: string?) -> (),
 	finish: () -> (), -- request an early, successful end (win condition met)
 	abort: () -> (), -- request an early, unsuccessful end

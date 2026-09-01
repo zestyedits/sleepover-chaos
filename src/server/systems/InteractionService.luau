@@ -10,14 +10,26 @@ local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Participant = require(Shared.Participant)
 local Tags = require(Shared.Tags)
+
+type Participant = Participant.Participant
 
 local InteractionService = {}
 
--- role -> handler(player, promptPart, promptInstance). Only one active handler per role;
--- an activity registers on start and unregisters on cleanup.
-local handlers: { [string]: (player: Player, part: BasePart) -> () } = {}
+-- role -> handler(actor, promptPart). Only one active handler per role; an activity registers on
+-- start and unregisters on cleanup.
+--
+-- The actor is a PARTICIPANT, not a Player. That single widening is what makes bots able to play:
+-- a bot cannot fire a RemoteEvent and cannot trigger a ProximityPrompt, but it can be routed
+-- through the very same handler a real prompt would call. Grabbing a snack, hiding, and stashing
+-- contraband all become bot-capable without the activities knowing anything about bots.
+local handlers: { [string]: (actor: Participant, part: BasePart) -> () } = {}
 local prompts: { [BasePart]: ProximityPrompt } = {}
+
+-- Mirrors ProximityPrompt.MaxActivationDistance below, so a simulated interaction is held to the
+-- same reach a human gets. Without it a bot could raid the kitchen from upstairs.
+local SIMULATED_REACH = 10
 
 local function ensurePrompt(part: BasePart)
 	if prompts[part] then
@@ -42,7 +54,7 @@ local function ensurePrompt(part: BasePart)
 		local role = part:GetAttribute("Role")
 		local handler = role and handlers[role]
 		if handler then
-			handler(player, part)
+			handler(Participant.fromPlayer(player), part)
 		end
 	end)
 
@@ -64,7 +76,7 @@ end
 -- Register a handler for a role (called by an activity in onStart, via its trove for cleanup).
 function InteractionService.register(
 	role: string,
-	handler: (player: Player, part: BasePart) -> ()
+	handler: (actor: Participant, part: BasePart) -> ()
 ): () -> ()
 	handlers[role] = handler
 	refreshPromptStates()
@@ -87,6 +99,31 @@ end
 
 function InteractionService.getPrompt(part: BasePart): ProximityPrompt?
 	return prompts[part]
+end
+
+-- Drive an interaction on behalf of a participant that cannot press a button -- i.e. a bot.
+--
+-- Held to the same rules a human gets: the role must have a live handler, the prompt must exist
+-- and be enabled, and the actor must be within reach. Returns whether it actually fired, so a bot
+-- driver can tell "too far away, keep walking" from "done".
+function InteractionService.simulate(role: string, actor: Participant, part: BasePart): boolean
+	local handler = handlers[role]
+	if not handler then
+		return false
+	end
+	if part:GetAttribute("Role") ~= role then
+		return false
+	end
+	local prompt = prompts[part]
+	if prompt and not prompt.Enabled then
+		return false
+	end
+	local root = Participant.rootPart(actor)
+	if not root or (root.Position - part.Position).Magnitude > SIMULATED_REACH then
+		return false
+	end
+	handler(actor, part)
+	return true
 end
 
 function InteractionService.start()

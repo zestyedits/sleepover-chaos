@@ -23,12 +23,17 @@ local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared.config.GameConfig)
+local Participant = require(Shared.Participant)
 local Tags = require(Shared.Tags)
 local Trove = require(Shared.util.Trove)
 
+type Participant = Participant.Participant
+
 local NPCManager = {}
 
-export type Behavior = "Idle" | "Gather" | "Hide" | "Bed" | "Scatter"
+-- Seek and Flee are the bot-driver behaviours: Seek walks straight at a target (a hiding spot
+-- to search, a snack to grab), Flee runs directly away from one.
+export type Behavior = "Idle" | "Gather" | "Hide" | "Bed" | "Scatter" | "Seek" | "Flee"
 
 local NPC_NAMES = { "Ava", "Max", "Zoe", "Leo", "Mia", "Kai", "Ivy", "Ben", "Luna", "Finn" }
 local SHIRT_COLORS = {
@@ -47,8 +52,24 @@ local guests: { Model } = {}
 local troves: { [Model]: any } = {}
 local assignments: { [Model]: BasePart } = {} -- sticky Hide/Bed target per guest
 local guestFolder: Folder? = nil
+
+-- Each guest is a real participant: it has an identity that can hold a score and place in the
+-- results. Created on spawn, dropped on despawn, and never reused.
+local identities: { [Model]: Participant } = {}
+
+-- The party default. setBehavior still moves everyone at once, which is what activities want
+-- ("everybody go to bed"), but a single guest can now be overridden -- see setGuestBehavior.
 local currentBehavior: Behavior = "Idle"
 local currentTarget: Vector3? = nil
+
+-- Per-guest overrides. A guest with an entry here ignores the party behaviour until it is
+-- cleared, which is what lets one bot break off to raid the kitchen while the rest mill about.
+local overrides: { [Model]: Behavior } = {}
+local overrideTargets: { [Model]: Vector3 } = {}
+
+-- Set while an activity is running; see rebalance().
+local frozen = false
+local rebalanceQueued = false
 
 --------------------------------------------------------------------------------------------------
 -- Rig construction
@@ -285,20 +306,52 @@ local function claim(guest: Model, tag: string): BasePart?
 	return chosen
 end
 
+-- What is this guest actually doing right now? A per-guest override beats the party default,
+-- which is what lets one bot peel off to raid the kitchen while the rest keep milling.
+local function behaviorOf(guest: Model): (Behavior, Vector3?)
+	local override = overrides[guest]
+	if override then
+		return override, overrideTargets[guest]
+	end
+	return currentBehavior, currentTarget
+end
+
 local function goalFor(guest: Model, root: BasePart): Vector3?
-	if currentBehavior == "Gather" and currentTarget then
-		return currentTarget + Vector3.new(math.random(-8, 8), 0, math.random(-8, 8))
-	elseif currentBehavior == "Hide" then
+	local behavior, target = behaviorOf(guest)
+	if behavior == "Gather" and target then
+		return target + Vector3.new(math.random(-8, 8), 0, math.random(-8, 8))
+	elseif behavior == "Seek" and target then
+		-- Walk right at it, no scatter: a seeker closing on a spot should look deliberate.
+		return target
+	elseif behavior == "Hide" then
 		local spot = claim(guest, Tags.HidingSpot)
 		return spot and spot.Position or nil
-	elseif currentBehavior == "Bed" then
+	elseif behavior == "Bed" then
 		local bed = claim(guest, Tags.BedZone)
 		return bed and bed.Position or nil
-	elseif currentBehavior == "Scatter" then
+	elseif behavior == "Flee" then
+		-- Away from the threat, not merely somewhere random.
+		if target then
+			local away = (root.Position - target).Unit * 26
+			return root.Position + Vector3.new(away.X, 0, away.Z)
+		end
+		return root.Position + Vector3.new(math.random(-24, 24), 0, math.random(-24, 24))
+	elseif behavior == "Scatter" then
 		return root.Position + Vector3.new(math.random(-24, 24), 0, math.random(-24, 24))
 	end
 	-- Idle: mill around wherever you are.
 	return root.Position + Vector3.new(math.random(-12, 12), 0, math.random(-12, 12))
+end
+
+-- How long to stand still after arriving. Settled behaviours (in a bed, in a wardrobe) hold
+-- position; active ones re-target quickly so they read as busy rather than twitchy.
+local function dwellFor(behavior: Behavior): number
+	if behavior == "Hide" or behavior == "Bed" then
+		return math.random(4, 7)
+	elseif behavior == "Seek" or behavior == "Flee" then
+		return math.random(1, 2)
+	end
+	return math.random(1, 3)
 end
 
 local function behaviorLoop(guest: Model)
@@ -314,10 +367,8 @@ local function behaviorLoop(guest: Model)
 			walkTo(guest, humanoid, root, goal)
 		end
 
-		-- Guests that have arrived somewhere they are supposed to stay (a bed, a hiding spot)
-		-- wait longer, so they settle instead of jittering in place.
-		local settled = currentBehavior == "Hide" or currentBehavior == "Bed"
-		task.wait(if settled then math.random(4, 7) else math.random(1, 3))
+		local behavior = behaviorOf(guest)
+		task.wait(dwellFor(behavior))
 	end
 end
 
@@ -370,6 +421,7 @@ local function spawnGuest()
 	guest:PivotTo(CFrame.new(spawnPosition()))
 	guest.Parent = ensureFolder()
 	table.insert(guests, guest)
+	identities[guest] = Participant.forBot(guest, name)
 
 	-- One trove per guest owns its behaviour thread. Previously the thread was untracked, so a
 	-- guest despawned mid-walk left a coroutine parked on a signal that would never fire again.
@@ -387,6 +439,9 @@ local function despawnGuest()
 		return
 	end
 	assignments[guest] = nil
+	identities[guest] = nil
+	overrides[guest] = nil
+	overrideTargets[guest] = nil
 	local guestTrove = troves[guest]
 	troves[guest] = nil
 	if guestTrove then
@@ -397,8 +452,18 @@ local function despawnGuest()
 end
 
 -- Keep guest count so that (real players + guests) ~ targetPartySize (GDD §13).
+--
+-- Frozen during a live run. Guests are scoring participants now, so culling one the instant a
+-- human joins would delete a competitor mid-activity -- their score would survive in the result
+-- while they vanish from the house. Deferred rebalances apply the moment the run ends.
 local function rebalance()
+	if frozen then
+		rebalanceQueued = true
+		return
+	end
+	rebalanceQueued = false
 	local desiredGuests = math.max(0, GameConfig.targetPartySize - #Players:GetPlayers())
+	desiredGuests = math.min(desiredGuests, GameConfig.maxBots or desiredGuests)
 	while #guests < desiredGuests do
 		spawnGuest()
 	end
@@ -485,6 +550,10 @@ function NPCManager.bump(guest: Model, impulse: Vector3)
 end
 
 -- Switch what the whole party is doing. `position` only matters for "Gather".
+--
+-- Per-guest overrides are deliberately NOT cleared here. An activity saying "everyone to bed"
+-- should not yank back a bot the driver has specifically sent to grab a snack; the driver clears
+-- its own overrides when it is done with them.
 function NPCManager.setBehavior(behavior: Behavior, position: Vector3?)
 	if behavior ~= currentBehavior then
 		table.clear(assignments) -- sticky spot claims belong to one behaviour only
@@ -495,6 +564,70 @@ function NPCManager.setBehavior(behavior: Behavior, position: Vector3?)
 	elseif behavior ~= "Gather" then
 		currentTarget = nil
 	end
+end
+
+-- Send ONE guest somewhere, overriding the party behaviour until cleared.
+function NPCManager.setGuestBehavior(guest: Model, behavior: Behavior, position: Vector3?)
+	overrides[guest] = behavior
+	if position then
+		overrideTargets[guest] = position
+	else
+		overrideTargets[guest] = nil
+	end
+end
+
+function NPCManager.clearGuestBehavior(guest: Model)
+	overrides[guest] = nil
+	overrideTargets[guest] = nil
+end
+
+function NPCManager.clearAllGuestBehaviors()
+	table.clear(overrides)
+	table.clear(overrideTargets)
+end
+
+--------------------------------------------------------------------------------------------------
+-- Identity — guests as participants
+--------------------------------------------------------------------------------------------------
+
+function NPCManager.participantFor(guest: Model): Participant?
+	return identities[guest]
+end
+
+-- Every live guest, as a participant that can hold a score and place in the results.
+function NPCManager.getParticipants(): { Participant }
+	local live: { Participant } = {}
+	for _, guest in guests do
+		local participant = identities[guest]
+		if guest.Parent and participant then
+			table.insert(live, participant)
+		end
+	end
+	return live
+end
+
+-- Which spot a guest has claimed, so Hide & Seek can reconcile its own occupancy map with the
+-- claims guests make. Before this the two systems never spoke, and a seeker searching a spot with
+-- a guest visibly inside it was told "Nothing in the pantry".
+function NPCManager.claimedSpot(guest: Model): BasePart?
+	return assignments[guest]
+end
+
+function NPCManager.releaseSpot(guest: Model)
+	assignments[guest] = nil
+end
+
+-- Hold guest count steady for the duration of a run, then apply whatever was deferred.
+function NPCManager.freeze(on: boolean)
+	frozen = on
+	if not on and rebalanceQueued then
+		rebalance()
+	end
+end
+
+-- Top the party back up before a run starts, so a solo player gets a full house to compete with.
+function NPCManager.ensureParty()
+	rebalance()
 end
 
 -- Back-compat wrappers so existing callers keep working.

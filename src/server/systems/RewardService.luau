@@ -9,9 +9,10 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Participant = require(Shared.Participant)
 local RankConfig = require(Shared.config.RankConfig)
-local ScrapbookConfig = require(Shared.config.ScrapbookConfig)
 local Remotes = require(Shared.net.Remotes)
+local ScrapbookConfig = require(Shared.config.ScrapbookConfig)
 
 local PlayerDataService = require(script.Parent.PlayerDataService)
 
@@ -111,16 +112,26 @@ end
 function RewardService.applyRunResult(kind: string, runnable: any, result: any)
 	local rewards = RankConfig.rewards
 
-	-- Everyone with a score entry (or every current player if none) participated.
+	-- Everyone with a score entry participated. Bots are filtered twice over: their ids sit
+	-- below the bot floor, AND Players:GetPlayerByUserId cannot resolve them. Note the deeper
+	-- guarantee behind both -- every grant function here takes a Player, and a bot has no Player
+	-- object, so paying one is not expressible rather than merely prevented.
 	local participants: { Player } = {}
 	local seen: { [Player]: boolean } = {}
-	for uid in result.scores do
-		local player = Players:GetPlayerByUserId(uid)
-		if player and not seen[player] then
-			seen[player] = true
-			table.insert(participants, player)
+	for id in result.scores do
+		if not Participant.isBotId(id) then
+			local player = Players:GetPlayerByUserId(id)
+			if player and not seen[player] then
+				seen[player] = true
+				table.insert(participants, player)
+			end
 		end
 	end
+
+	-- Nobody human scored. Fall back to everyone present, so a round where the bots did all the
+	-- work still pays the humans who sat through it. Guarded on there being no HUMAN score
+	-- rather than no score at all -- otherwise a bot-only scoreboard would look like a completed
+	-- run with participants and skip the payout entirely.
 	if #participants == 0 then
 		for _, player in Players:GetPlayers() do
 			table.insert(participants, player)

@@ -15,6 +15,7 @@ local Lifecycle = require(Shared.framework.Lifecycle)
 local RandomUtil = require(Shared.util.RandomUtil)
 local Remotes = require(Shared.net.Remotes)
 
+local NPCManager = require(script.Parent.NPCManager)
 local RewardService = require(script.Parent.RewardService)
 local HouseLoader = require(script.Parent.Parent.world.HouseLoader)
 
@@ -79,6 +80,7 @@ local function runDef(def: any): any?
 
 	local result = Lifecycle.run(runnable, {
 		players = Players:GetPlayers(),
+		bots = NPCManager.getParticipants(),
 		house = house,
 		announceCountdown = true,
 		onResults = function(runnableRef, runResult)
