@@ -41,6 +41,53 @@ local CosmeticConfig = {
 			color = { 0.9, 0.3, 0.6 },
 		},
 
+		-- Sleeping bags (GDD §11). The one cosmetic visible from across the room and on screen
+		-- for the whole sleepover, which is why it carries the paid tier. Geometry is generated
+		-- by server/world/SleepingBags.luau; `id` here must match a design id there.
+		{
+			id = "bag_default",
+			displayName = "Hand-Me-Down",
+			slot = "SleepingBag",
+			default = true,
+			color = { 0.49, 0.53, 0.58 },
+		},
+		{
+			id = "bag_stargazer",
+			displayName = "Classic Star Gazer",
+			slot = "SleepingBag",
+			starCost = 200,
+			color = { 0.70, 0.17, 0.18 },
+		},
+		{
+			id = "bag_galaxy",
+			displayName = "Galaxy Sleeper",
+			slot = "SleepingBag",
+			starCost = 500,
+			color = { 0.19, 0.12, 0.33 },
+		},
+		{
+			id = "bag_kitty",
+			displayName = "Kawaii Kitty Sack",
+			slot = "SleepingBag",
+			starCost = 750,
+			color = { 0.94, 0.62, 0.77 },
+		},
+		-- Paid-exclusive: no starCost, so they can never be earned, only bought.
+		{
+			id = "bag_dino",
+			displayName = "Dino Den Bag",
+			slot = "SleepingBag",
+			robuxProductId = 0, -- 15 Robux -- replace with the real developer product id
+			color = { 0.33, 0.62, 0.24 },
+		},
+		{
+			id = "bag_pizza",
+			displayName = "Pizza Party Pouch",
+			slot = "SleepingBag",
+			robuxProductId = 0, -- 20 Robux -- replace with the real developer product id
+			color = { 0.18, 0.36, 0.69 },
+		},
+
 		-- Slippers
 		{
 			id = "slip_bunny",

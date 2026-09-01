@@ -5,6 +5,7 @@
 
 export type CosmeticSlot =
 	"Pajamas"
+	| "SleepingBag"
 	| "Slippers"
 	| "Plushie"
 	| "PhoneSkin"
