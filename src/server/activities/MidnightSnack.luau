@@ -18,8 +18,10 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local ActivityBase = require(Shared.framework.ActivityBase)
+local Participant = require(Shared.Participant)
 local Tags = require(Shared.Tags)
 
+local BotDriver = require(script.Parent.Parent.systems.BotDriver)
 local InteractionService = require(script.Parent.Parent.systems.InteractionService)
 local NPCManager = require(script.Parent.Parent.systems.NPCManager)
 
@@ -76,7 +78,7 @@ return ActivityBase.extend("MidnightSnack", {
 
 		local collected: { [string]: boolean } = {}
 
-		ctx.trove:AddCleanup(InteractionService.register("Snack", function(player, part)
+		ctx.trove:AddCleanup(InteractionService.register("Snack", function(actor, part)
 			local snack = part:GetAttribute("Snack")
 			if not snack or collected[snack] or part:GetAttribute("Taken") then
 				return
@@ -97,13 +99,52 @@ return ActivityBase.extend("MidnightSnack", {
 				prompt.Enabled = false
 			end
 
-			ctx.addScore(player, settings.pointsPerSnack or 2)
+			ctx.addScore(actor, settings.pointsPerSnack or 2)
 			ctx.result.tags.collected += 1
 			ctx.result.tags.noise += settings.noisePerGrab or 22
-			ctx.announce(`{player.Name} swiped the {snack}!`, "info")
+			ctx.announce(`{actor.name} swiped the {snack}!`, "info")
 		end))
 
 		NPCManager.setBehavior("Gather")
+
+		-- Bots raid too. They walk to the nearest untaken snack and go through the very same
+		-- handler above -- InteractionService.simulate re-checks reach and the prompt's enabled
+		-- state, so a bot cannot take a shortcut a human could not.
+		--
+		-- They also walk SLOWER than their default 12 for the duration. Against a quietSpeed of
+		-- 7 a normal-speed guest generates noise constantly and would bust the raid single
+		-- handedly within seconds.
+		for _, bot in ctx.bots() do
+			local humanoid = bot.model and bot.model:FindFirstChildOfClass("Humanoid")
+			if humanoid then
+				local previous = humanoid.WalkSpeed
+				humanoid.WalkSpeed = 6
+				ctx.trove:AddCleanup(function()
+					if humanoid.Parent then
+						humanoid.WalkSpeed = previous
+					end
+				end)
+			end
+		end
+
+		BotDriver.run(ctx, {
+			plan = function(_, bot)
+				local target = BotDriver.nearestPart(bot, snackSources(), function(part)
+					return not part:GetAttribute("Taken")
+				end)
+				if not target then
+					return nil
+				end
+				return {
+					behavior = "Seek",
+					goal = target,
+					arriveRadius = 7,
+					onArrive = function(actingBot)
+						InteractionService.simulate("Snack", actingBot, target)
+					end,
+				}
+			end,
+		})
 	end,
 
 	onUpdate = function(dt, ctx)
@@ -116,14 +157,17 @@ return ActivityBase.extend("MidnightSnack", {
 		-- should not read as stomping.
 		local quietSpeed = settings.quietSpeed or 7
 		local perSpeedUnit = settings.noisePerSpeedUnit or 0.35
-		for _, player in ctx.players do
-			local character = player.Character
-			local root = character and character:FindFirstChild("HumanoidRootPart")
+		-- Everyone in the house makes noise, bots included -- otherwise a bot could sprint the
+		-- kitchen clean while the meter sat at zero, and the humans would carry all the risk for
+		-- a shared objective. Bots count half, because they are not the ones choosing to hurry.
+		for _, participant in ctx.participants do
+			local root = Participant.rootPart(participant)
 			if root then
-				local velocity = (root :: BasePart).AssemblyLinearVelocity
+				local velocity = root.AssemblyLinearVelocity
 				local speed = Vector3.new(velocity.X, 0, velocity.Z).Magnitude
 				if speed > quietSpeed then
-					noise += (speed - quietSpeed) * perSpeedUnit * dt
+					local weight = if participant.isBot then 0.5 else 1
+					noise += (speed - quietSpeed) * perSpeedUnit * weight * dt
 				end
 			end
 		end
@@ -162,8 +206,11 @@ return ActivityBase.extend("MidnightSnack", {
 		if ctx.result.completed and ctx.result.tags.collected >= ctx.result.tags.requested then
 			ctx.result.scrapbook = { "midnight_feast" }
 			ctx.announce("Midnight feast secured! 🍪", "result")
-			for _, player in ctx.players do
-				table.insert(ctx.result.winners, player)
+			-- A shared objective: the raid succeeded or it did not, so everyone who was in the
+			-- kitchen shares the win. Listing bots here is harmless — RewardService only pays
+			-- entries it can resolve to a Player, and the memory is the humans' either way.
+			for _, participant in ctx.participants do
+				table.insert(ctx.result.winners, participant)
 			end
 		end
 	end,

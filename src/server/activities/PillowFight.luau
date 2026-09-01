@@ -21,8 +21,12 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local ActivityBase = require(Shared.framework.ActivityBase)
+local Participant = require(Shared.Participant)
 local RandomUtil = require(Shared.util.RandomUtil)
 
+type Participant = Participant.Participant
+
+local BotDriver = require(script.Parent.Parent.systems.BotDriver)
 local NPCManager = require(script.Parent.Parent.systems.NPCManager)
 
 local HIT_RANGE = 7
@@ -38,14 +42,6 @@ local NPC_REACTIONS = {
 	"pillow war!!",
 	"ow ow ow",
 }
-
-local function rootOf(model: Instance?): BasePart?
-	if not model then
-		return nil
-	end
-	local root = (model :: Instance):FindFirstChild("HumanoidRootPart")
-	return root and root:IsA("BasePart") and root or nil
-end
 
 local function equipPillow(player: Player, trove: any): Tool?
 	local backpack = player:FindFirstChildOfClass("Backpack")
@@ -85,9 +81,12 @@ local function buildSightlineParams(): RaycastParams
 			table.insert(exclude, player.Character)
 		end
 	end
-	local guestFolder = Workspace:FindFirstChild("NPCGuests")
-	if guestFolder then
-		table.insert(exclude, guestFolder)
+	-- Ask NPCManager for the guests rather than looking up a folder by name. A name lookup finds
+	-- whichever "NPCGuests" folder happens to be first, and if a stale one is ever left in the
+	-- Workspace the swing raycast silently filters the wrong set -- every guest becomes a wall and
+	-- no bot can be hit. Same failure mode as the spawn-folder bug: ask the owner, not the tree.
+	for _, guest in NPCManager.getGuests() do
+		table.insert(exclude, guest)
 	end
 	params.FilterDescendantsInstances = exclude
 	return params
@@ -102,20 +101,91 @@ return ActivityBase.extend("PillowFight", {
 	onStart = function(ctx)
 		local settings = ctx.config
 		local mega = RandomUtil.chance(settings.megaChance or 0)
+		-- One value for every hit. Bots swing back now, so the old discount on hitting a guest
+		-- would have been a tax on fighting the opponents that actually fight you -- and with
+		-- bots scoring, two different point values would have made the scoreboard incomparable.
 		local pointsPerHit = settings.pointsPerHit or 2
-		local pointsPerNpcHit = settings.pointsPerNpcHit or 1
 		if mega then
 			pointsPerHit *= settings.megaPointMultiplier or 2
-			pointsPerNpcHit *= settings.megaPointMultiplier or 2
 			ctx.result.tags.mega = true
 			ctx.announce("MEGA PILLOW FIGHT!!! The living room is chaos!", "chaos")
 		else
 			ctx.announce("Pillow Fight! Whack everyone!", "event")
 		end
 
-		local lastSwing: { [Player]: number } = {}
-		local lastHit: { [Instance]: number } = {}
+		local lastSwing: { [number]: number } = {}
+		local lastHit: { [number]: number } = {}
 		local activationWindow: { [Player]: { count: number, since: number } } = {}
+
+		-- The swing itself, lifted out of the tool handler so a bot can call it.
+		--
+		-- Everything that makes a swing fair -- cooldown, range, facing cone, sightline, one
+		-- victim per swing, victim i-frames -- lives in here, so a bot is held to exactly the
+		-- rules a human is. The tool handler adds only the things that are specific to holding a
+		-- physical tool: the spam gate and the equipped check.
+		local function swing(attacker: Participant): boolean
+			local now = os.clock()
+			if lastSwing[attacker.id] and now - lastSwing[attacker.id] < SWING_COOLDOWN then
+				return false
+			end
+			local attackerRoot = Participant.rootPart(attacker)
+			if not attackerRoot then
+				return false
+			end
+			lastSwing[attacker.id] = now
+
+			local origin = attackerRoot.Position
+			local look = attackerRoot.CFrame.LookVector
+			local params = buildSightlineParams()
+
+			-- Gather every candidate, then commit to exactly one: the closest that passes.
+			local bestRoot: BasePart? = nil
+			local bestDistance = math.huge
+			local bestVictim: Participant? = nil
+
+			for _, victim in ctx.participants do
+				if victim.id ~= attacker.id then
+					local root = Participant.rootPart(victim)
+					local blocked = lastHit[victim.id] and now - lastHit[victim.id] < VICTIM_IFRAME
+					if root and not blocked then
+						local delta = root.Position - origin
+						local distance = delta.Magnitude
+						local inRange = distance <= HIT_RANGE
+							and distance > 0.01
+							and distance < bestDistance
+						if
+							inRange
+							and look:Dot(delta.Unit) >= FACING_DOT
+							and hasSightline(origin, root.Position, params)
+						then
+							bestRoot, bestDistance, bestVictim = root, distance, victim
+						end
+					end
+				end
+			end
+
+			if not bestRoot or not bestVictim then
+				return false
+			end
+
+			local victim = bestVictim :: Participant
+			local push = (bestRoot.Position - origin).Unit * (if mega then 60 else 30)
+				+ Vector3.new(0, if mega then 30 else 15, 0)
+
+			lastHit[victim.id] = now
+			ctx.addScore(attacker, pointsPerHit)
+
+			if victim.isBot then
+				local model = victim.model
+				if model then
+					NPCManager.bump(model, push)
+					NPCManager.say(model, NPC_REACTIONS[math.random(1, #NPC_REACTIONS)])
+				end
+			else
+				bestRoot.AssemblyLinearVelocity = push
+			end
+			return true
+		end
 
 		local function armPlayer(player: Player)
 			local tool = equipPillow(player, ctx.trove)
@@ -141,83 +211,34 @@ return ActivityBase.extend("PillowFight", {
 				if tool.Parent ~= player.Character then
 					return
 				end
-				if lastSwing[player] and now - lastSwing[player] < SWING_COOLDOWN then
-					return
-				end
 
-				local attackerRoot = rootOf(player.Character)
-				if not attackerRoot then
-					return
-				end
-				lastSwing[player] = now
-
-				local origin = attackerRoot.Position
-				local look = attackerRoot.CFrame.LookVector
-				local params = buildSightlineParams()
-
-				-- Gather every candidate, then commit to exactly one: the closest that passes.
-				local bestRoot: BasePart? = nil
-				local bestDistance = math.huge
-				local bestPlayer: Player? = nil
-				local bestModel: Instance? = nil
-
-				local function consider(model: Instance, victimPlayer: Player?)
-					local root = rootOf(model)
-					if not root then
-						return
-					end
-					local key: Instance = victimPlayer or model
-					if lastHit[key] and now - lastHit[key] < VICTIM_IFRAME then
-						return
-					end
-					local delta = root.Position - origin
-					local distance = delta.Magnitude
-					if distance > HIT_RANGE or distance <= 0.01 or distance >= bestDistance then
-						return
-					end
-					if look:Dot(delta.Unit) < FACING_DOT then
-						return
-					end
-					if not hasSightline(origin, root.Position, params) then
-						return
-					end
-					bestRoot, bestDistance, bestPlayer, bestModel =
-						root, distance, victimPlayer, model
-				end
-
-				for _, other in ctx.players do
-					if other ~= player and other.Character then
-						consider(other.Character, other)
-					end
-				end
-				-- NPC guests are legitimate targets, worth less than a real player. This is what
-				-- lets a solo player actually play Pillow Fight instead of swinging at air.
-				for _, guest in NPCManager.getGuests() do
-					consider(guest, nil)
-				end
-
-				if not bestRoot then
-					return
-				end
-
-				local push = (bestRoot.Position - origin).Unit * (if mega then 60 else 30)
-					+ Vector3.new(0, if mega then 30 else 15, 0)
-
-				if bestPlayer then
-					lastHit[bestPlayer] = now
-					ctx.addScore(player, pointsPerHit)
-					bestRoot.AssemblyLinearVelocity = push
-				elseif bestModel then
-					lastHit[bestModel] = now
-					ctx.addScore(player, pointsPerNpcHit)
-					NPCManager.bump(bestModel :: Model, push)
-					NPCManager.say(
-						bestModel :: Model,
-						NPC_REACTIONS[math.random(1, #NPC_REACTIONS)]
-					)
-				end
+				swing(Participant.fromPlayer(player))
 			end)
 		end
+
+		-- Bots hunt the nearest person and swing. They score what a human scores for the same
+		-- hit -- difficulty is how OFTEN they act, never what an action is worth, so the
+		-- scoreboard stays directly comparable.
+		BotDriver.run(ctx, {
+			plan = function(_, bot)
+				local target, targetRoot = BotDriver.nearestParticipant(ctx, bot, 45)
+				if not target or not targetRoot then
+					return nil
+				end
+				local root = Participant.rootPart(bot)
+				-- Already close enough: swing now rather than walking a pointless step first.
+				if root and (root.Position - targetRoot.Position).Magnitude <= HIT_RANGE - 1 then
+					return { behavior = "Seek", onArrive = swing }
+				end
+				local anchor = targetRoot
+				return {
+					behavior = "Seek",
+					goal = anchor,
+					arriveRadius = HIT_RANGE - 1,
+					onArrive = swing,
+				}
+			end,
+		})
 
 		for _, player in ctx.players do
 			armPlayer(player)
@@ -242,18 +263,28 @@ return ActivityBase.extend("PillowFight", {
 
 	onFinish = function(ctx)
 		-- Winner = highest score. Flag the win-only scrapbook memory + stat.
-		local best, winner = 0, nil
-		for uid, score in ctx.result.scores do
+		-- A bot can top the board, so find the winner among participants rather than resolving
+		-- the id to a Player -- that lookup returns nil for a bot and the announce would have
+		-- read "nil won the pillow fight".
+		local best, winnerId = 0, nil
+		for id, score in ctx.result.scores do
 			if score > best then
-				best = score
-				winner = Players:GetPlayerByUserId(uid)
+				best, winnerId = score, id
+			end
+		end
+		local winner = nil
+		for _, participant in ctx.participants do
+			if participant.id == winnerId then
+				winner = participant
 			end
 		end
 		if winner and best > 0 then
 			table.insert(ctx.result.winners, winner)
+			-- Winner-only rewards are safe to set regardless: RewardService only grants to
+			-- entries it can resolve to a Player, so a bot winner simply pays nobody.
 			ctx.result.winnerScrapbook = { "won_pillow_fight" }
 			ctx.result.winnerStats = { pillowFightWins = 1 }
-			ctx.announce(`{winner.Name} won the pillow fight with {best} points!`, "result")
+			ctx.announce(`{winner.name} won the pillow fight with {best} points!`, "result")
 		else
 			ctx.announce("Pillow fight over. Nobody landed a thing.", "result")
 		end

@@ -79,6 +79,13 @@ local function ensureFolder(): Folder
 	if guestFolder and guestFolder.Parent then
 		return guestFolder
 	end
+	-- Adopt an existing folder before making another. Two folders of the same name is a nasty
+	-- state to debug: anything doing FindFirstChild("NPCGuests") silently picks one of them.
+	local existing = Workspace:FindFirstChild("NPCGuests")
+	if existing and existing:IsA("Folder") then
+		guestFolder = existing
+		return existing
+	end
 	local folder = Instance.new("Folder")
 	folder.Name = "NPCGuests"
 	folder.Parent = Workspace

@@ -98,9 +98,12 @@ function RewardService.incrementStat(player: Player, stat: string, amount: numbe
 	end)
 end
 
+-- Winners may be Players or Participants -- activities insert whichever they were holding, and
+-- a bot has no Player to insert. Identity comparison would silently stop matching the moment an
+-- activity started recording participants, so compare by id instead.
 local function isWinner(result: any, player: Player): boolean
 	for _, winner in result.winners do
-		if winner == player then
+		if Participant.same(winner, player) then
 			return true
 		end
 	end

@@ -23,7 +23,6 @@ local ActivityConfig = {
 			objective = "Whack everyone with pillows! Most hits wins.",
 			settings = {
 				pointsPerHit = 2,
-				pointsPerNpcHit = 1, -- NPC guests are hittable, just worth less than a real player
 				megaChance = 0.15, -- rare MEGA PILLOW FIGHT variant (GDD §6)
 				megaPointMultiplier = 2,
 			},
