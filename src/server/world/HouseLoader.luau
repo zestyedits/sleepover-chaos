@@ -330,6 +330,32 @@ local function annotate(house: Instance, origin: CFrame, annotations: any)
 		end
 	end
 
+	-- Nobody hand-lists forty light fixtures. If the map did not name any, adopt every light the
+	-- model already ships with, so Power Outage has something to switch off.
+	--
+	-- Without this an imported house blacks out only the global Lighting while every fixture in
+	-- the building stays lit, which reads as a bug rather than a blackout. Listing `lights`
+	-- explicitly opts out and wins.
+	if not annotations.lights or #annotations.lights == 0 then
+		local adopted = 0
+		for _, descendant in house:GetDescendants() do
+			if descendant:IsA("Light") then
+				local host = descendant.Parent
+				if
+					host
+					and host:IsA("BasePart")
+					and not CollectionService:HasTag(host, Tags.HouseLight)
+				then
+					CollectionService:AddTag(host, Tags.HouseLight)
+					adopted += 1
+				end
+			end
+		end
+		if adopted > 0 then
+			print(`[HouseLoader] adopted {adopted} built-in light fixture(s) for Power Outage`)
+		end
+	end
+
 	if annotations.atticHatch then
 		local hatch = resolvePart(house, origin, annotations.atticHatch, "atticHatch")
 		if hatch then

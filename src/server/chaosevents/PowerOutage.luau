@@ -31,18 +31,31 @@ return ChaosEventBase.extend("PowerOutage", {
 		end)
 
 		-- Turn off every tagged house light; remember which to re-enable.
+		--
+		-- Match on the Light base class rather than PointLight specifically. The greybox house
+		-- only ever builds PointLights, but an imported one is full of SpotLights and
+		-- SurfaceLights, and a fixture can hold more than one — a lamp with a bulb and a glow.
+		-- Looking for a single PointLight left most of an imported house lit through a blackout.
 		for _, host in CollectionService:GetTagged(Tags.HouseLight) do
 			if host:IsA("BasePart") then
-				local light = host:FindFirstChildOfClass("PointLight")
-				local wasEnabled = light and light.Enabled
-				local prevMaterial = host.Material
-				if light then
-					light.Enabled = false
+				local restore: { [Light]: boolean } = {}
+				for _, child in host:GetDescendants() do
+					if child:IsA("Light") then
+						restore[child] = child.Enabled
+						child.Enabled = false
+					end
 				end
+
+				-- Neon fixtures emit regardless of their Light, so the material has to drop too
+				-- or the bulb stays visibly glowing in the dark.
+				local prevMaterial = host.Material
 				host.Material = Enum.Material.SmoothPlastic
+
 				ctx.trove:AddCleanup(function()
-					if light then
-						light.Enabled = wasEnabled == nil and true or wasEnabled
+					for light, wasEnabled in restore do
+						if light.Parent then
+							light.Enabled = wasEnabled
+						end
 					end
 					host.Material = prevMaterial
 				end)

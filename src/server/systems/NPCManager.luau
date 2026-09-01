@@ -325,16 +325,38 @@ end
 -- Spawning
 --------------------------------------------------------------------------------------------------
 
+-- Find a spawn by TAG, not by folder name.
+--
+-- This used to look for a folder called "Spawns" under Workspace.House, which only HouseBuilder
+-- creates. An imported house tags its spawn pads SC_SpawnPoint and parents them straight under
+-- the house, so the lookup found nothing and every guest fell back to the world origin — which
+-- for a model whose base sits at y = -21 means the whole party spawns outside, in mid-air.
+--
+-- The tag is the contract both house sources already honour, so ask for that instead.
 local function spawnPosition(): Vector3
+	local pads = CollectionService:GetTagged(Tags.SpawnPoint)
+	local usable = {}
+	for _, pad in pads do
+		if pad:IsA("BasePart") and pad:IsDescendantOf(Workspace) then
+			table.insert(usable, pad)
+		end
+	end
+	if #usable > 0 then
+		local chosen = usable[math.random(1, #usable)]
+		-- Scatter a little so guests do not stack on one pad, and start slightly high so the
+		-- Humanoid settles onto the floor rather than clipping into it.
+		return chosen.Position + Vector3.new(math.random(-4, 4), 4, math.random(-4, 4))
+	end
+
+	-- No spawn pads at all. Aim for the middle of the house rather than the world origin, which
+	-- is not inside every house.
 	local house = Workspace:FindFirstChild("House")
-	local spawns = house and house:FindFirstChild("Spawns")
-	if spawns then
-		local list = spawns:GetChildren()
-		if #list > 0 then
-			local chosen = list[math.random(1, #list)]
-			if chosen:IsA("BasePart") then
-				return chosen.Position + Vector3.new(math.random(-4, 4), 4, math.random(-4, 4))
-			end
+	if house then
+		local ok, pivot = pcall(function()
+			return house:GetPivot().Position
+		end)
+		if ok then
+			return pivot + Vector3.new(0, 6, 0)
 		end
 	end
 	return Vector3.new(0, 6, 0)
