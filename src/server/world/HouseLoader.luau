@@ -24,6 +24,7 @@ local MapConfig = require(Shared.config.MapConfig)
 local Tags = require(Shared.Tags)
 
 local HouseBuilder = require(script.Parent.HouseBuilder)
+local Props = require(script.Parent.Props)
 
 local HouseLoader = {}
 
@@ -429,65 +430,80 @@ local function placeFurniture(house: Instance, origin: CFrame, list: any)
 		return
 	end
 	local library = ServerStorage:FindFirstChild(FURNITURE_FOLDER)
-	if not library then
-		complain(
-			`{#list} furniture placement(s) configured, but ServerStorage.{FURNITURE_FOLDER} does `
-				.. "not exist. Approve props into assets/approved-imports/furniture/ and re-sync."
-		)
-		return
-	end
 
-	local placed = 0
+	local placed, fromKit = 0, 0
 	for _, item in list do
-		local template = library:FindFirstChild(item.model)
-		if not template then
-			complain(`furniture: no model named "{item.model}" in ServerStorage.{FURNITURE_FOLDER}`)
-			continue
-		end
-
-		local prop = template:Clone()
 		local cframe = origin
 			* CFrame.new(item.at[1] or 0, item.at[2] or 0, item.at[3] or 0)
 			* CFrame.Angles(0, math.rad(item.yaw or 0), 0)
 
-		if prop:IsA("Model") then
-			prop:PivotTo(cframe)
-		elseif prop:IsA("BasePart") then
-			prop.CFrame = cframe
+		-- An approved import wins; otherwise fall back to the procedural greybox kit.
+		--
+		-- Same name, either source. That means a house can be fully playable on greybox props
+		-- today, and each one upgrades to a real asset the moment a file of that name lands in
+		-- assets/approved-imports/furniture/ — no config change, no re-measuring. It also means
+		-- a missing asset degrades to a grey box rather than to a missing hiding spot.
+		local prop: Instance?
+		local template = library and library:FindFirstChild(item.model)
+		if template then
+			prop = template:Clone()
+			if prop:IsA("Model") then
+				(prop :: Model):PivotTo(cframe)
+			elseif prop:IsA("BasePart") then
+				(prop :: BasePart).CFrame = cframe
+			end
+		elseif Props.exists(item.model) then
+			prop = (Props.build(item.model, cframe))
+			fromKit += 1
+		end
+
+		if not prop then
+			complain(
+				`furniture: "{item.model}" is neither in ServerStorage.{FURNITURE_FOLDER} nor a `
+					.. "known greybox prop kind"
+			)
+			continue
 		end
 		anchorAll(prop)
 		prop.Parent = house
 		CollectionService:AddTag(prop, Tags.Furniture)
 		placed += 1
 
-		local role = item.role
-		if role == "HidingSpot" then
-			local trigger = hidingTrigger(prop, cframe * CFrame.new(0, 2.5, 0))
-			tagHidingSpot(trigger, item.label or prop.Name)
-		elseif role == "SnackSource" then
-			local part = partFrom(prop, item.model, "furniture")
-			if part then
-				tagSnackSource(part, item.snack or item.model)
+		-- One prop can carry several roles. A bed is both the thing Parent Check wants you in and
+		-- the thing Hide & Seek wants you under, so `role` accepts a list as well as a string.
+		local roles = if type(item.role) == "table" then item.role else { item.role }
+		for _, role in roles do
+			if role == "HidingSpot" then
+				local trigger = hidingTrigger(prop, cframe * CFrame.new(0, 2.5, 0))
+				tagHidingSpot(trigger, item.label or prop.Name)
+			elseif role == "SnackSource" then
+				local part = partFrom(prop, item.model, "furniture")
+				if part then
+					tagSnackSource(part, item.snack or item.model)
+				end
+			elseif role == "BedZone" then
+				local part = partFrom(prop, item.model, "furniture")
+				if part then
+					CollectionService:AddTag(part, Tags.BedZone)
+				end
+			elseif role == "Light" then
+				local part = partFrom(prop, item.model, "furniture")
+				if part then
+					CollectionService:AddTag(part, Tags.HouseLight)
+				end
+			elseif role == "Anchor" then
+				tagAnchor(house, cframe, item.activity or "PillowFight", item.kind)
+			elseif role ~= nil then
+				complain(`furniture: "{item.model}" has unknown role "{role}"`)
 			end
-		elseif role == "BedZone" then
-			local part = partFrom(prop, item.model, "furniture")
-			if part then
-				CollectionService:AddTag(part, Tags.BedZone)
-			end
-		elseif role == "Light" then
-			local part = partFrom(prop, item.model, "furniture")
-			if part then
-				CollectionService:AddTag(part, Tags.HouseLight)
-			end
-		elseif role == "Anchor" then
-			tagAnchor(house, cframe, item.activity or "PillowFight", item.kind)
-		elseif role ~= nil then
-			complain(`furniture: "{item.model}" has unknown role "{role}"`)
 		end
 	end
 
 	if placed > 0 then
-		print(`[HouseLoader] placed {placed} furniture prop(s)`)
+		print(
+			`[HouseLoader] placed {placed} furniture prop(s), {fromKit} from the greybox kit `
+				.. `(swap one in by dropping a matching name into {FURNITURE_FOLDER})`
+		)
 	end
 end
 

@@ -191,7 +191,9 @@ local MapConfig = {
 					-- Kitchen end of the same open plan. Close to the pillow anchor because it
 					-- IS the same room; what actually locates the raid is where the snack
 					-- sources get placed, on the counters.
-					{ at = { -8, 6, 28 }, activity = "MidnightSnack" },
+					-- At the real fitted kitchen, found by looking for counter-height horizontal
+					-- surfaces (tops 3.3 studs above the slab) rather than by guessing.
+					{ at = { -20, 6, 15 }, activity = "MidnightSnack" },
 					{ at = { -20, 18, 24 }, activity = "ParentCheck" },
 					{ at = { -2, 18, 0 }, activity = "HideAndSeek", kind = "seeker" },
 					-- The front entry is a 76 st^2 vestibule with only 2 studs of clearance, so
@@ -200,11 +202,103 @@ local MapConfig = {
 					{ at = { -10, 6, -26 }, activity = "PizzaDisaster", kind = "door" },
 				},
 
-				-- Hiding spots, snack sources and bed zones are deliberately absent: this house
-				-- ships unfurnished, so there is nothing yet to tag. They arrive with the props,
-				-- through `furniture` below. HouseLoader will warn about each missing category at
-				-- startup until then, which is the intended signal rather than a bug.
-				furniture = {},
+				-- Hiding spots, snack sources and bed zones are not listed above because this
+				-- house ships unfurnished — there is no bed to tag as a bed zone and no pantry to
+				-- hide in. They arrive here instead, with the prop and its role together.
+				--
+				-- Every `model` below is a greybox prop from Props.luau, so the house is fully
+				-- playable today. Each one upgrades the moment a file of the SAME NAME lands in
+				-- assets/approved-imports/furniture/ — imports win, no config change needed.
+				--
+				-- The Y values are 6.43 and 18.43, not 6 and 18, because that is where the slabs
+				-- actually are. Measured per position by raycast rather than assumed; at a flat 6
+				-- every prop sank 0.08 studs into the floor. Every entry was then checked for
+				-- clashes against real geometry with its own footprint.
+				furniture = {
+					-- Living room: the social space. The rug IS the Pillow Fight anchor.
+					{ model = "Rug", at = { -4, 6.43, 22 } },
+					{ model = "CoffeeTable", at = { -4, 6.43, 17 } },
+					{ model = "Sofa", at = { -11, 6.43, 22 }, yaw = 90 },
+					{ model = "TV", at = { 5, 6.43, 22 }, yaw = 270, role = "Light" },
+					{ model = "Lamp", at = { -11, 6.43, 28 }, role = "Light" },
+
+					-- Kitchen. Snack bowls sit ON the model's own counters, at their measured
+					-- surface height of 9.7, each verified reachable from open floor.
+					{
+						model = "SnackBowl",
+						at = { -19, 9.7, 19 },
+						role = "SnackSource",
+						snack = "Chips",
+					},
+					{
+						model = "SnackBowl",
+						at = { -19, 9.7, 10 },
+						role = "SnackSource",
+						snack = "Cookies",
+					},
+					{
+						model = "SnackBowl",
+						at = { -20, 9.7, 21 },
+						role = "SnackSource",
+						snack = "Popcorn",
+					},
+					{
+						model = "SnackBowl",
+						at = { -18, 9.7, 9 },
+						role = "SnackSource",
+						snack = "Soda",
+					},
+
+					-- Den
+					{ model = "Bookshelf", at = { 28, 6.43, 30 } },
+					{ model = "ToyChest", at = { 20, 6.43, 30 } },
+
+					-- Bedroom. The bed carries two roles: Parent Check wants you IN it, Hide &
+					-- Seek wants you UNDER it.
+					{
+						model = "Bed",
+						at = { -20, 18.43, 24 },
+						role = { "BedZone", "HidingSpot" },
+						label = "Under the bed",
+					},
+					{
+						model = "Closet",
+						at = { -25, 18.43, 20 },
+						yaw = 90,
+						role = "HidingSpot",
+						label = "In the closet",
+					},
+					{ model = "Nightstand", at = { -16, 18.43, 20 } },
+
+					-- Guest room
+					{ model = "Bed", at = { 24, 18.43, 26 }, role = "BedZone" },
+					{ model = "Dresser", at = { 20, 18.43, 18 } },
+
+					-- Bathroom
+					{
+						model = "Bathtub",
+						at = { 28, 18.43, -16 },
+						role = "HidingSpot",
+						label = "In the bathtub",
+					},
+					{ model = "Toilet", at = { 20, 18.43, -16 } },
+
+					-- The five hiding verbs: under, in, in, behind, in. Curtains and pantry
+					-- complete the set.
+					{
+						model = "Curtains",
+						at = { 0, 6.43, 30 },
+						role = "HidingSpot",
+						label = "Behind the curtains",
+					},
+					{
+						model = "Pantry",
+						at = { -24, 6.43, 16 },
+						yaw = 90,
+						role = "HidingSpot",
+						label = "In the pantry",
+					},
+				},
 			},
 		},
 
